@@ -1,0 +1,9 @@
+Package: com.scottgl.apstest
+Name: APSTest
+Depends: mobilesubstrate
+Version: 0.10
+Architecture: iphoneos-arm
+Description: APSTest APP
+Maintainer: Scott Glover <scottgl@gmail.com>
+Author: Scott Glover <scottgl@gmail.com>
+Section: Tweaks
