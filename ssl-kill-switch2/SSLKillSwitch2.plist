@@ -2,6 +2,7 @@
 	Filter = {
 		Bundles = (
 			"com.apple.AuthKit",
+			"com.apple.apsd",
 			"com.apple.UIKit",
 			"com.apple.itunesstored",
 		);
