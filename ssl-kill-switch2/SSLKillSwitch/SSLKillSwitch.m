@@ -52,6 +52,34 @@ static BOOL shouldHookFromPreference(NSString *preferenceSetting)
 }
 #endif
 
+#pragma mark SSLRead Hook
+
+static OSStatus (*original_SSLRead)(SSLContextRef context, void *data, size_t dataLength, size_t *processed);
+static OSStatus replaced_SSLRead(SSLContextRef context, void *data, size_t dataLength, size_t *processed)
+{
+    OSStatus ret = original_SSLRead(context, data, dataLength, processed);
+    NSString *appID = [[NSBundle mainBundle] bundleIdentifier];
+
+    if (appID) SSKLog(@"%@ SSLRead() processed=%d", appID, *processed);
+    else SSKLog(@"SSLRead() processed=%d", *processed);
+
+    return ret;
+}
+
+
+#pragma mark SSLWrite Hook
+
+static OSStatus (*original_SSLWrite)(SSLContextRef context, void *data, size_t dataLength, size_t *processed);
+static OSStatus replaced_SSLWrite(SSLContextRef context, void *data, size_t dataLength, size_t *processed)
+{
+    OSStatus ret = original_SSLWrite(context, data, dataLength, processed);
+    NSString *appID = [[NSBundle mainBundle] bundleIdentifier];
+
+    if (appID) SSKLog(@"%@ SSLWrite() processed=%d", appID, *processed);
+    else SSKLog(@"SSLWrite() processed=%d", *processed);
+    return ret;
+}
+
 
 #pragma mark SSLSetSessionOption Hook
 
@@ -71,6 +99,21 @@ static OSStatus replaced_SSLSetSessionOption(SSLContextRef context,
     return original_SSLSetSessionOption(context, option, value);
 }
 
+/*
+#pragma mark SSLSetSessionOption Hook
+
+static OSStatus (*original_SSLGetSessionOption)	(SSLContextRef		context,
+                                                 SSLSessionOption	option,
+                                                 Boolean			*value);
+
+static OSStatus replaced_SSLGetSessionOption	(SSLContextRef		context,
+                                                 SSLSessionOption	option,
+                                                 Boolean			*value)
+{
+    OSStatus retval = original_SSLGetSessionOption(context, option, value);
+    return retval;
+}
+*/
 
 #pragma mark SSLCreateContext Hook
 
@@ -115,12 +158,15 @@ static OSStatus replaced_SSLHandshake(SSLContextRef context)
     {
         // Do not check the cert and call SSLHandshake() again
         return original_SSLHandshake(context);
+    } else
+    {
+        SSKLog(@"SSLHandshake error %d", result);
     }
-    
+
     return result;
 }
 
-
+/*
 #pragma mark SecTrustEvaluate Hook
 
 static OSStatus (*original_SecTrustEvaluate)(SecTrustRef trust, SecTrustResultType *result);
@@ -134,7 +180,7 @@ static OSStatus replaced_SecTrustEvaluate(SecTrustRef trust, SecTrustResultType 
     *result = kSecTrustResultProceed;
     return errSecSuccess;
 }
-
+*/
 #pragma mark CocoaSPDY hook
 #if SUBSTRATE_BUILD
 
@@ -162,6 +208,7 @@ static void newRegisterOrigin(id self, SEL _cmd, NSString *origin)
     // This should force the App to downgrade from SPDY to HTTPS
 }
 
+/*
 static OSStatus (*oldSecTrustEvaluate)(SecTrustRef trust, SecTrustResultType *result);
 
 static OSStatus newSecTrustEvaluate(SecTrustRef trust, SecTrustResultType *result)
@@ -173,6 +220,7 @@ static OSStatus newSecTrustEvaluate(SecTrustRef trust, SecTrustResultType *resul
     *result = kSecTrustResultProceed;
     return errSecSuccess;
 }
+*/
 #endif
 
 
@@ -181,7 +229,6 @@ static OSStatus newSecTrustEvaluate(SecTrustRef trust, SecTrustResultType *resul
 
 __attribute__((constructor)) static void init(int argc, const char **argv)
 {
-#if SUBSTRATE_BUILD
     // Should we enable the hook ?
     if (shouldHookFromPreference(PREFERENCE_KEY))
     {
@@ -192,7 +239,9 @@ __attribute__((constructor)) static void init(int argc, const char **argv)
         MSHookFunction((void *) SSLHandshake,(void *)  replaced_SSLHandshake, (void **) &original_SSLHandshake);
         MSHookFunction((void *) SSLSetSessionOption,(void *)  replaced_SSLSetSessionOption, (void **) &original_SSLSetSessionOption);
         MSHookFunction((void *) SSLCreateContext,(void *)  replaced_SSLCreateContext, (void **) &original_SSLCreateContext);
-        MSHookFunction((void *) SecTrustEvaluate,(void *)  replaced_SecTrustEvaluate, (void **) &original_SecTrustEvaluate);
+        MSHookFunction((void *) SSLRead,(void *)  replaced_SSLRead, (void **) &original_SSLRead);
+        MSHookFunction((void *) SSLWrite,(void *)  replaced_SSLWrite, (void **) &original_SSLWrite);
+        //MSHookFunction((void *) SecTrustEvaluate,(void *)  replaced_SecTrustEvaluate, (void **) &original_SecTrustEvaluate);
 
         // CocoaSPDY hooks - https://github.com/twitter/CocoaSPDY
         // TODO: Enable these hooks for the fishhook-based hooking so it works on OS X too
@@ -202,7 +251,7 @@ __attribute__((constructor)) static void init(int argc, const char **argv)
             // Disable trust evaluation
             MSHookMessageEx(object_getClass(spdyProtocolClass), NSSelectorFromString(@"setTLSTrustEvaluator:"), (IMP) &newSetTLSTrustEvaluator, (IMP *)&oldSetTLSTrustEvaluator);
             
-            MSHookMessageEx(object_getClass(spdyProtocolClass), NSSelectorFromString(@"SecTrustEvaluate:"), (IMP) &newSecTrustEvaluate, (IMP *)&oldSecTrustEvaluate);
+            //MSHookMessageEx(object_getClass(spdyProtocolClass), NSSelectorFromString(@"SecTrustEvaluate:"), (IMP) &newSecTrustEvaluate, (IMP *)&oldSecTrustEvaluate);
             
             // CocoaSPDY works by getting registered as a NSURLProtocol; block that so the Apps switches back to HTTP as SPDY is tricky to proxy
             Class spdyUrlConnectionProtocolClass = NSClassFromString(@"SPDYURLConnectionProtocol");
@@ -215,34 +264,6 @@ __attribute__((constructor)) static void init(int argc, const char **argv)
     {
         SSKLog(@"Subtrate hook disabled.");
     }
-    
-#else
-    // Fishhook-based hooking, for OS X builds; always hook
-    SSKLog(@"Fishhook hook enabled.");
-    original_SSLHandshake = dlsym(RTLD_DEFAULT, "SSLHandshake");
-    if ((rebind_symbols((struct rebinding[1]){{(char *)"SSLHandshake", (void *)replaced_SSLHandshake}}, 1) < 0))
-    {
-        SSKLog(@"Hooking failed.");
-    }
-    
-    original_SSLSetSessionOption = dlsym(RTLD_DEFAULT, "SSLSetSessionOption");
-    if ((rebind_symbols((struct rebinding[1]){{(char *)"SSLSetSessionOption", (void *)replaced_SSLSetSessionOption}}, 1) < 0))
-    {
-        SSKLog(@"Hooking failed.");
-    }
-    
-    original_SSLCreateContext = dlsym(RTLD_DEFAULT, "SSLCreateContext");
-    if ((rebind_symbols((struct rebinding[1]){{(char *)"SSLCreateContext", (void *)replaced_SSLCreateContext}}, 1) < 0))
-    {
-        SSKLog(@"Hooking failed.");
-    }
-    
-    original_SecTrustEvaluate = dlsym(RTLD_DEFAULT, "SecTrustEvaluate");
-    if ((rebind_symbols((struct rebinding[1]){{(char *)"SecTrustEvaluate", (void *)replaced_SecTrustEvaluate}}, 1) < 0))
-    {
-        SSKLog(@"Hooking failed.");
-    }
 
-#endif
 }
 
