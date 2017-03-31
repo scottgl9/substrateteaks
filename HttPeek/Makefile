@@ -1,11 +1,9 @@
 ARCHS := armv7
 
-# arm64
-
 include /opt/theos/makefiles/common.mk
 
 TWEAK_NAME = HttPeek
-HttPeek_FILES = HttPeek/HttPeak.m HttPeek/HookUtil.m
+HttPeek_FILES = HttPeek/HttPeek.m HttPeek/LogData.mm
 
 #mgtest_LIBRARIES = MobileGestalt
 

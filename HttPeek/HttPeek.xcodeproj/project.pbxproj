@@ -7,37 +7,21 @@
 	objects = {
 
 /* Begin PBXBuildFile section */
+		1CD8479B1E8E1C8800B89704 /* HttPeek.m in Sources */ = {isa = PBXBuildFile; fileRef = 1CD847991E8E1C8800B89704 /* HttPeek.m */; };
+		1CD8479C1E8E1C8800B89704 /* LogData.mm in Sources */ = {isa = PBXBuildFile; fileRef = 1CD8479A1E8E1C8800B89704 /* LogData.mm */; };
+		1CD8479F1E8E1CEA00B89704 /* Macro.h in Headers */ = {isa = PBXBuildFile; fileRef = 1CD8479D1E8E1CEA00B89704 /* Macro.h */; };
+		1CD847A01E8E1CEA00B89704 /* NSUtil.h in Headers */ = {isa = PBXBuildFile; fileRef = 1CD8479E1E8E1CEA00B89704 /* NSUtil.h */; };
 		240277F21A885C7400897D2F /* Security.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 240277F11A885C7400897D2F /* Security.framework */; };
-		241E96241A6F4EA800AA3BD0 /* Main.mm in Sources */ = {isa = PBXBuildFile; fileRef = 241E96171A6F4EA800AA3BD0 /* Main.mm */; };
-		241E96261A6F4EA800AA3BD0 /* Prefix.pch in Headers */ = {isa = PBXBuildFile; fileRef = 241E96191A6F4EA800AA3BD0 /* Prefix.pch */; };
-		241E962A1A6F4EA800AA3BD0 /* Macro.h in Headers */ = {isa = PBXBuildFile; fileRef = 241E961E1A6F4EA800AA3BD0 /* Macro.h */; };
-		241E962B1A6F4EA800AA3BD0 /* NSUtil.h in Headers */ = {isa = PBXBuildFile; fileRef = 241E961F1A6F4EA800AA3BD0 /* NSUtil.h */; };
-		24B6E1DF1ACD729900118275 /* HookUtil.h in Headers */ = {isa = PBXBuildFile; fileRef = 24B6E1DD1ACD729900118275 /* HookUtil.h */; };
-		24B6E1E81ACD819000118275 /* HookUtil.m in Sources */ = {isa = PBXBuildFile; fileRef = 24B6E1DE1ACD729900118275 /* HookUtil.m */; };
-		24B6E1EF1ACD869600118275 /* SSLPeek.m in Sources */ = {isa = PBXBuildFile; fileRef = 241E961B1A6F4EA800AA3BD0 /* SSLPeek.m */; };
-		24B6E1F01ACD869600118275 /* WebViewPeek.m in Sources */ = {isa = PBXBuildFile; fileRef = 241E961C1A6F4EA800AA3BD0 /* WebViewPeek.m */; };
-		24B6E1F11ACD869600118275 /* ApplicationPeek.m in Sources */ = {isa = PBXBuildFile; fileRef = 241E96131A6F4EA800AA3BD0 /* ApplicationPeek.m */; };
-		24B6E1F21ACD869600118275 /* ConnectionPeek.m in Sources */ = {isa = PBXBuildFile; fileRef = 241E96141A6F4EA800AA3BD0 /* ConnectionPeek.m */; };
-		24B6E1F31ACD869600118275 /* NotificationPeek.m in Sources */ = {isa = PBXBuildFile; fileRef = 241E96181A6F4EA800AA3BD0 /* NotificationPeek.m */; };
-		24B6E1F41ACD869600118275 /* ReadStreamPeek.m in Sources */ = {isa = PBXBuildFile; fileRef = 241E961A1A6F4EA800AA3BD0 /* ReadStreamPeek.m */; };
 		24C1807615104BF100951174 /* UIKit.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 24C1807515104BF100951174 /* UIKit.framework */; };
 		24CADA911510492B00B22162 /* Foundation.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 24CADA901510492B00B22162 /* Foundation.framework */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXFileReference section */
+		1CD847991E8E1C8800B89704 /* HttPeek.m */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.objc; name = HttPeek.m; path = HttPeek/HttPeek.m; sourceTree = SOURCE_ROOT; };
+		1CD8479A1E8E1C8800B89704 /* LogData.mm */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.objcpp; name = LogData.mm; path = HttPeek/LogData.mm; sourceTree = SOURCE_ROOT; };
+		1CD8479D1E8E1CEA00B89704 /* Macro.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = Macro.h; path = HttPeek/Macro.h; sourceTree = SOURCE_ROOT; };
+		1CD8479E1E8E1CEA00B89704 /* NSUtil.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = NSUtil.h; path = HttPeek/NSUtil.h; sourceTree = SOURCE_ROOT; };
 		240277F11A885C7400897D2F /* Security.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = Security.framework; path = System/Library/Frameworks/Security.framework; sourceTree = SDKROOT; };
-		241E96131A6F4EA800AA3BD0 /* ApplicationPeek.m */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.objc; path = ApplicationPeek.m; sourceTree = "<group>"; };
-		241E96141A6F4EA800AA3BD0 /* ConnectionPeek.m */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.objc; path = ConnectionPeek.m; sourceTree = "<group>"; };
-		241E96171A6F4EA800AA3BD0 /* Main.mm */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.objcpp; path = Main.mm; sourceTree = "<group>"; };
-		241E96181A6F4EA800AA3BD0 /* NotificationPeek.m */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.objc; path = NotificationPeek.m; sourceTree = "<group>"; };
-		241E96191A6F4EA800AA3BD0 /* Prefix.pch */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = Prefix.pch; sourceTree = "<group>"; };
-		241E961A1A6F4EA800AA3BD0 /* ReadStreamPeek.m */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.objc; path = ReadStreamPeek.m; sourceTree = "<group>"; };
-		241E961B1A6F4EA800AA3BD0 /* SSLPeek.m */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.objc; path = SSLPeek.m; sourceTree = "<group>"; };
-		241E961C1A6F4EA800AA3BD0 /* WebViewPeek.m */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.objc; path = WebViewPeek.m; sourceTree = "<group>"; };
-		241E961E1A6F4EA800AA3BD0 /* Macro.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = Macro.h; sourceTree = "<group>"; };
-		241E961F1A6F4EA800AA3BD0 /* NSUtil.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = NSUtil.h; sourceTree = "<group>"; };
-		24B6E1DD1ACD729900118275 /* HookUtil.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = HookUtil.h; sourceTree = "<group>"; };
-		24B6E1DE1ACD729900118275 /* HookUtil.m */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.objc; path = HookUtil.m; sourceTree = "<group>"; };
 		24C1807515104BF100951174 /* UIKit.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = UIKit.framework; path = System/Library/Frameworks/UIKit.framework; sourceTree = SDKROOT; };
 		24CADA8D1510492B00B22162 /* HttPeek.dylib */ = {isa = PBXFileReference; explicitFileType = "compiled.mach-o.dylib"; includeInIndex = 0; path = HttPeek.dylib; sourceTree = BUILT_PRODUCTS_DIR; };
 		24CADA901510492B00B22162 /* Foundation.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = Foundation.framework; path = System/Library/Frameworks/Foundation.framework; sourceTree = SDKROOT; };
@@ -60,14 +44,10 @@
 		241E96121A6F4EA800AA3BD0 /* Sources */ = {
 			isa = PBXGroup;
 			children = (
-				241E96191A6F4EA800AA3BD0 /* Prefix.pch */,
-				241E96171A6F4EA800AA3BD0 /* Main.mm */,
-				241E961B1A6F4EA800AA3BD0 /* SSLPeek.m */,
-				241E961C1A6F4EA800AA3BD0 /* WebViewPeek.m */,
-				241E96131A6F4EA800AA3BD0 /* ApplicationPeek.m */,
-				241E96141A6F4EA800AA3BD0 /* ConnectionPeek.m */,
-				241E96181A6F4EA800AA3BD0 /* NotificationPeek.m */,
-				241E961A1A6F4EA800AA3BD0 /* ReadStreamPeek.m */,
+				1CD8479D1E8E1CEA00B89704 /* Macro.h */,
+				1CD8479E1E8E1CEA00B89704 /* NSUtil.h */,
+				1CD847991E8E1C8800B89704 /* HttPeek.m */,
+				1CD8479A1E8E1C8800B89704 /* LogData.mm */,
 			);
 			path = Sources;
 			sourceTree = "<group>";
@@ -75,10 +55,6 @@
 		241E961D1A6F4EA800AA3BD0 /* Utilities */ = {
 			isa = PBXGroup;
 			children = (
-				241E961E1A6F4EA800AA3BD0 /* Macro.h */,
-				241E961F1A6F4EA800AA3BD0 /* NSUtil.h */,
-				24B6E1DD1ACD729900118275 /* HookUtil.h */,
-				24B6E1DE1ACD729900118275 /* HookUtil.m */,
 			);
 			path = Utilities;
 			sourceTree = "<group>";
@@ -118,10 +94,8 @@
 			isa = PBXHeadersBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
-				241E962A1A6F4EA800AA3BD0 /* Macro.h in Headers */,
-				241E962B1A6F4EA800AA3BD0 /* NSUtil.h in Headers */,
-				241E96261A6F4EA800AA3BD0 /* Prefix.pch in Headers */,
-				24B6E1DF1ACD729900118275 /* HookUtil.h in Headers */,
+				1CD8479F1E8E1CEA00B89704 /* Macro.h in Headers */,
+				1CD847A01E8E1CEA00B89704 /* NSUtil.h in Headers */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -198,14 +172,8 @@
 			isa = PBXSourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
-				24B6E1F41ACD869600118275 /* ReadStreamPeek.m in Sources */,
-				24B6E1F31ACD869600118275 /* NotificationPeek.m in Sources */,
-				24B6E1EF1ACD869600118275 /* SSLPeek.m in Sources */,
-				24B6E1E81ACD819000118275 /* HookUtil.m in Sources */,
-				24B6E1F01ACD869600118275 /* WebViewPeek.m in Sources */,
-				24B6E1F11ACD869600118275 /* ApplicationPeek.m in Sources */,
-				24B6E1F21ACD869600118275 /* ConnectionPeek.m in Sources */,
-				241E96241A6F4EA800AA3BD0 /* Main.mm in Sources */,
+				1CD8479C1E8E1C8800B89704 /* LogData.mm in Sources */,
+				1CD8479B1E8E1C8800B89704 /* HttPeek.m in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -215,6 +183,8 @@
 		24CADA981510492B00B22162 /* Debug */ = {
 			isa = XCBuildConfiguration;
 			buildSettings = {
+				CLANG_CXX_LANGUAGE_STANDARD = "compiler-default";
+				CLANG_CXX_LIBRARY = "compiler-default";
 				CLANG_ENABLE_OBJC_ARC = YES;
 				CLANG_WARN_CONSTANT_CONVERSION = YES;
 				CLANG_WARN_ENUM_CONVERSION = YES;
@@ -222,9 +192,10 @@
 				CLANG_WARN__DUPLICATE_METHOD_MATCH = YES;
 				COPY_PHASE_STRIP = NO;
 				ENABLE_BITCODE = NO;
+				ENABLE_TESTABILITY = YES;
 				EXECUTABLE_EXTENSION = dylib;
 				GCC_OPTIMIZATION_LEVEL = 0;
-				GCC_PRECOMPILE_PREFIX_HEADER = YES;
+				GCC_PRECOMPILE_PREFIX_HEADER = NO;
 				GCC_PREFIX_HEADER = Sources/Prefix.pch;
 				GCC_PREPROCESSOR_DEFINITIONS = (
 					"DEBUG=1",
@@ -234,7 +205,7 @@
 				GCC_WARN_UNINITIALIZED_AUTOS = YES;
 				GCC_WARN_UNUSED_VARIABLE = YES;
 				INIT_ROUTINE = _main;
-				IPHONEOS_DEPLOYMENT_TARGET = 6.0;
+				IPHONEOS_DEPLOYMENT_TARGET = 9.3;
 				MACH_O_TYPE = mh_dylib;
 				ONLY_ACTIVE_ARCH = YES;
 				PRODUCT_NAME = HttPeek;
@@ -245,6 +216,8 @@
 		24CADA991510492B00B22162 /* Release */ = {
 			isa = XCBuildConfiguration;
 			buildSettings = {
+				CLANG_CXX_LANGUAGE_STANDARD = "compiler-default";
+				CLANG_CXX_LIBRARY = "compiler-default";
 				CLANG_ENABLE_OBJC_ARC = YES;
 				CLANG_WARN_CONSTANT_CONVERSION = YES;
 				CLANG_WARN_ENUM_CONVERSION = YES;
@@ -253,14 +226,15 @@
 				COPY_PHASE_STRIP = YES;
 				ENABLE_BITCODE = NO;
 				EXECUTABLE_EXTENSION = dylib;
-				GCC_PRECOMPILE_PREFIX_HEADER = YES;
+				GCC_PRECOMPILE_PREFIX_HEADER = NO;
 				GCC_PREFIX_HEADER = Sources/Prefix.pch;
 				GCC_WARN_ABOUT_RETURN_TYPE = YES;
 				GCC_WARN_UNINITIALIZED_AUTOS = YES;
 				GCC_WARN_UNUSED_VARIABLE = YES;
 				INIT_ROUTINE = _main;
-				IPHONEOS_DEPLOYMENT_TARGET = 6.0;
+				IPHONEOS_DEPLOYMENT_TARGET = 9.3;
 				MACH_O_TYPE = mh_dylib;
+				ONLY_ACTIVE_ARCH = YES;
 				PRODUCT_NAME = HttPeek;
 				SDKROOT = iphoneos;
 				VALIDATE_PRODUCT = YES;
