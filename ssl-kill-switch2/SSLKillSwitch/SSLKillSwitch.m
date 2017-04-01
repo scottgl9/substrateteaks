@@ -92,23 +92,59 @@ static OSStatus replaced_SSLRead(SSLContextRef context, void *data, size_t dataL
 static OSStatus (*original_SSLWrite)(SSLContextRef context, void *data, size_t dataLength, size_t *processed);
 static OSStatus replaced_SSLWrite(SSLContextRef context, void *data, size_t dataLength, size_t *processed)
 {
+	NSString *appID = [[NSBundle mainBundle] bundleIdentifier];
+/*
+	if (HttpRequestReplaceString(data, dataLength, "iPhone5,3", "iPhone7,1")){ if (appID) { SSKLog(@"%@ SSLWrite() Replaced %s -> %s", appID, "iPhone5,3", "iPhone7,1"); }
+    } 
+    if (HttpRequestReplaceString(data, dataLength, "18:af:61:ed:30:b1", "50:7a:55:be:1e:6a")){ if (appID) { SSKLog(@"%@ SSLWrite() Replaced 18:af:61:ed:30:b1 -> 50:7a:55:be:1e:6a", appID); }
+    //} else if (HttpRequestReplaceString(data, dataLength, "AEA5CCE143668D0EFB4CE1F2C94C966A6496C6AA", "8CB15EE4C8002199070D9500BB8FB183B02713A5CA2A6B92DB5E75CE15536182")){ if (appID) { SSKLog(@"%@ SSLWrite() Replaced AEA5CCE143668D0EFB4CE1F2C94C966A6496C6AA -> 8CB15EE4C8002199070D9500BB8FB183B02713A5CA2A6B92DB5E75CE15536182", appID); }
+    }
+    if (HttpRequestReplaceString(data, dataLength, "ME553", "MGC02")){ if (appID) { SSKLog(@"%@ SSLWrite() Replaced ME553 -> MGC02", appID); }
+    }
+    if (HttpRequestReplaceString(data, dataLength, "c1ffc3c03997b19d9dcf68fb81f117226539ef6b", "a9a08959739fda70188f69dd5691e59e905270ca")){ if (appID) { SSKLog(@"%@ SSLWrite() Replaced c1ffc3c03997b19d9dcf68fb81f117226539ef6b -> a9a08959739fda70188f69dd5691e59e905270ca", appID); }
+    }
+    if (HttpRequestReplaceString(data, dataLength, "18:af:61:ed:30:af", "50:7a:55:be:1e:68")){ if (appID) { SSKLog(@"%@ SSLWrite() Replaced 18:af:61:ed:30:af -> 50:7a:55:be:1e:68", appID); }
+    }
+    if (HttpRequestReplaceString(data, dataLength, "89014103277446203312", "89014104277367212663")){ if (appID) { SSKLog(@"%@ SSLWrite() Replaced 89014103277446203312 -> 89014104277367212663", appID); }
+    //} else if (HttpRequestReplaceString(data, dataLength, "armv7s", "arm64")){ if (appID) { SSKLog(@"%@ SSLWrite() Replaced armv7s -> arm64", appID); }
+    }
+    if (HttpRequestReplaceString(data, dataLength, "#3b3b3c", "#e1e4e3")){ if (appID) { SSKLog(@"%@ SSLWrite() Replaced #3b3b3c -> #e1e4e3", appID); }
+    }
+    if (HttpRequestReplaceString(data, dataLength, "310410744620331", "310410736721266")){ if (appID) { SSKLog(@"%@ SSLWrite() Replaced 310410744620331 -> 310410736721266", appID); }
+    }
+    if (HttpRequestReplaceString(data, dataLength, "357991051309069", "354451066373298")){ if (appID) { SSKLog(@"%@ SSLWrite() Replaced 357991051309069 -> 354451066373298", appID); }
+    //} else if (HttpRequestReplaceString(data, dataLength, "s5l8950x", "t7000")){ if (appID) { SSKLog(@"%@ SSLWrite() Replaced s5l8950x -> t7000", appID); }
+    }
+    if (HttpRequestReplaceString(data, dataLength, "35799105130906", "35445106637329")){ if (appID) { SSKLog(@"%@ SSLWrite() Replaced 35799105130906 -> 35445106637329", appID); }
+    }
+    if (HttpRequestReplaceString(data, dataLength, "F78L5D2UFNDD", "C39Q55U0G5QG")){ if (appID) { SSKLog(@"%@ SSLWrite() Replaced F78L5D2UFNDD -> C39Q55U0G5QG", appID); }
+    }
+    if (HttpRequestReplaceString(data, dataLength, "18:af:61:ed:30:b0", "50:7a:55:be:1e:69")){ if (appID) { SSKLog(@"%@ SSLWrite() Replaced 18:af:61:ed:30:b0 -> 50:7a:55:be:1e:69", appID); }
+    }
+    if (HttpRequestReplaceString(data, dataLength, "C7H329505LVF284ZD", "C07530506N7G166J")){ if (appID) { SSKLog(@"%@ SSLWrite() Replaced C7H329505LVF284ZD -> C07530506N7G166J", appID); }
+    }
+    if (HttpRequestReplaceString(data, dataLength, "N48AP", "N56AP")){ if (appID) { SSKLog(@"%@ SSLWrite() Replaced N48AP -> N56AP", appID); }
+    }
+    if (HttpRequestReplaceString(data, dataLength, "#f5f4f7", "#d7d9d8")){ if (appID) { SSKLog(@"%@ SSLWrite() Replaced #f5f4f7 -> #d7d9d8", appID); } }
+*/
     OSStatus ret = original_SSLWrite(context, data, dataLength, processed);
-    NSString *appID = [[NSBundle mainBundle] bundleIdentifier];
-
-    if (appID) SSKLog(@"%@ SSLWrite() processed=%d", appID, *processed);
-    else SSKLog(@"SSLWrite() processed=%d", *processed);
     
-    if (*processed > 0 && *processed <= 1024) {
+    if (*processed > 0) {
+		if (appID) SSKLog(@"%@ SSLWrite() processed=%d", appID, *processed);
+
+		writeDataToFile(appID, data, *processed);
+
         NSData *myData = [[NSData alloc] initWithBytes:data length:*processed];
         NSString *httpString = isHTTPRequest(myData);
     
         if (httpString != NULL)
         {
-            SSKLog(httpString);
+			NSString *cmdstr = getHttpRequestCommand(httpString);
+			//int headercnt = getHttpRequestHeaders(httpString).count;
+			//int bodylen = getHttpRequestBody(httpString).length;
+            SSKLog(@"SSLWrite() cmd %@, req len=%d", cmdstr, *processed);
         }
     }
-    
-    if (*processed > 0) writeDataToFile(appID, data, *processed);
     
     return ret;
 }
