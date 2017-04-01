@@ -52,6 +52,21 @@ static BOOL shouldHookFromPreference(NSString *preferenceSetting)
 }
 #endif
 
+void writeDataToFile(NSString *appID, void *data, size_t len)
+{
+    NSString *filename = [NSString stringWithFormat:@"/var/tmp/%@.log", appID];
+    NSData *myData = [[NSData alloc] initWithBytes:data length:len];
+    NSFileHandle *fileHandle = [NSFileHandle fileHandleForWritingAtPath:filename];
+    if (fileHandle) {
+        [fileHandle seekToEndOfFile];
+        [fileHandle writeData:myData];
+        [fileHandle closeFile];
+    } else {
+        NSError *error = nil;
+        [myData writeToFile:filename options:NSDataWritingAtomic error:&error];
+    }
+}
+
 #pragma mark SSLRead Hook
 
 static OSStatus (*original_SSLRead)(SSLContextRef context, void *data, size_t dataLength, size_t *processed);
@@ -59,12 +74,15 @@ static OSStatus replaced_SSLRead(SSLContextRef context, void *data, size_t dataL
 {
     OSStatus ret = original_SSLRead(context, data, dataLength, processed);
     NSString *appID = [[NSBundle mainBundle] bundleIdentifier];
-
+    
     if (appID) SSKLog(@"%@ SSLRead() processed=%d", appID, *processed);
     else SSKLog(@"SSLRead() processed=%d", *processed);
 
+    if (*processed > 0) writeDataToFile(appID, data, *processed);
+    
     return ret;
 }
+
 
 
 #pragma mark SSLWrite Hook
@@ -77,6 +95,9 @@ static OSStatus replaced_SSLWrite(SSLContextRef context, void *data, size_t data
 
     if (appID) SSKLog(@"%@ SSLWrite() processed=%d", appID, *processed);
     else SSKLog(@"SSLWrite() processed=%d", *processed);
+    
+    if (*processed > 0) writeDataToFile(appID, data, *processed);
+    
     return ret;
 }
 
