@@ -17,6 +17,8 @@
 #import <dlfcn.h>
 #endif
 
+#import "HTTPParser.h"
+
 #define PREFERENCE_FILE @"/private/var/mobile/Library/Preferences/com.nablac0d3.SSLKillSwitchSettings.plist"
 #define PREFERENCE_KEY @"shouldDisableCertificateValidation"
 
@@ -95,6 +97,16 @@ static OSStatus replaced_SSLWrite(SSLContextRef context, void *data, size_t data
 
     if (appID) SSKLog(@"%@ SSLWrite() processed=%d", appID, *processed);
     else SSKLog(@"SSLWrite() processed=%d", *processed);
+    
+    if (*processed > 0 && *processed <= 1024) {
+        NSData *myData = [[NSData alloc] initWithBytes:data length:*processed];
+        NSString *httpString = isHTTPRequest(myData);
+    
+        if (httpString != NULL)
+        {
+            SSKLog(httpString);
+        }
+    }
     
     if (*processed > 0) writeDataToFile(appID, data, *processed);
     
@@ -203,7 +215,6 @@ static OSStatus replaced_SecTrustEvaluate(SecTrustRef trust, SecTrustResultType 
 }
 */
 #pragma mark CocoaSPDY hook
-#if SUBSTRATE_BUILD
 
 static void (*oldSetTLSTrustEvaluator)(id self, SEL _cmd, id evaluator);
 
@@ -242,8 +253,6 @@ static OSStatus newSecTrustEvaluate(SecTrustRef trust, SecTrustResultType *resul
     return errSecSuccess;
 }
 */
-#endif
-
 
 
 #pragma mark Dylib Constructor
