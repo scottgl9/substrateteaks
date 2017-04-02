@@ -7,7 +7,9 @@
 //
 
 #import <Foundation/Foundation.h>
+#import <CoreFoundation/CoreFoundation.h>
 #import <Security/SecureTransport.h>
+#import <Security/Security.h>
 #import <UIKit/UIKit.h>
 
 #if SUBSTRATE_BUILD
@@ -48,7 +50,7 @@ static BOOL shouldHookFromPreference(NSString *preferenceSetting)
     else
     {
         shouldHook = [[plist objectForKey:preferenceSetting] boolValue];
-        SSKLog(@"Preference set to %d.", shouldHook);
+        //SSKLog(@"Preference set to %d.", shouldHook);
     }
     return shouldHook;
 }
@@ -77,8 +79,8 @@ static OSStatus replaced_SSLRead(SSLContextRef context, void *data, size_t dataL
     OSStatus ret = original_SSLRead(context, data, dataLength, processed);
     NSString *appID = [[NSBundle mainBundle] bundleIdentifier];
     
-    if (appID) SSKLog(@"%@ SSLRead() processed=%d", appID, *processed);
-    else SSKLog(@"SSLRead() processed=%d", *processed);
+    //if (appID) SSKLog(@"%@ SSLRead() processed=%d", appID, *processed);
+    //else SSKLog(@"SSLRead() processed=%d", *processed);
 
     if (*processed > 0) writeDataToFile(appID, data, *processed);
     
@@ -130,7 +132,7 @@ static OSStatus replaced_SSLWrite(SSLContextRef context, void *data, size_t data
     OSStatus ret = original_SSLWrite(context, data, dataLength, processed);
     
     if (*processed > 0) {
-		if (appID) SSKLog(@"%@ SSLWrite() processed=%d", appID, *processed);
+		//if (appID) SSKLog(@"%@ SSLWrite() processed=%d", appID, *processed);
 
 		writeDataToFile(appID, data, *processed);
 
@@ -142,13 +144,40 @@ static OSStatus replaced_SSLWrite(SSLContextRef context, void *data, size_t data
 			NSString *cmdstr = getHttpRequestCommand(httpString);
 			//int headercnt = getHttpRequestHeaders(httpString).count;
 			//int bodylen = getHttpRequestBody(httpString).length;
-            SSKLog(@"SSLWrite() cmd %@, req len=%d", cmdstr, *processed);
+            if (appID) SSKLog(@"%@ SSLWrite() cmd %@, req len=%d", appID, cmdstr, *processed);
         }
     }
     
     return ret;
 }
 
+
+#pragma mark CFReadStreamCreateForHTTPRequest Hook
+
+static CFReadStreamRef (*original_CFReadStreamCreateForHTTPRequest)(CFAllocatorRef alloc, CFHTTPMessageRef request);
+static CFReadStreamRef replaced_CFReadStreamCreateForHTTPRequest(CFAllocatorRef alloc, CFHTTPMessageRef request)
+{
+	if (request != NULL) SSKLog(@"%s: %p", __FUNCTION__, request);
+	return original_CFReadStreamCreateForHTTPRequest(alloc, request);
+}
+
+
+#pragma mark CFHTTPMessageCreateRequest Hook
+
+static CFHTTPMessageRef (*original_CFHTTPMessageCreateRequest)(CFAllocatorRef alloc, CFStringRef requestMethod, CFURLRef url, CFStringRef httpVersion);
+static CFHTTPMessageRef replaced_CFHTTPMessageCreateRequest(CFAllocatorRef alloc, CFStringRef requestMethod, CFURLRef url, CFStringRef httpVersion)
+{
+	CFStringRef hostname = CFURLCopyHostName(url);
+	if (hostname != NULL) SSKLog(@"%s: %@", __FUNCTION__, hostname);
+	return original_CFHTTPMessageCreateRequest(alloc, requestMethod, url, httpVersion);
+}
+
+static void (*original_CFHTTPMessageSetBody)(CFHTTPMessageRef message, CFDataRef bodyData);
+static void replaced_CFHTTPMessageSetBody(CFHTTPMessageRef message, CFDataRef bodyData)
+{
+	SSKLog(@"%s: len=%d", __FUNCTION__, CFDataGetLength(bodyData));
+	return original_CFHTTPMessageSetBody(message, bodyData);
+}
 
 #pragma mark SSLSetSessionOption Hook
 
@@ -213,7 +242,6 @@ static SSLContextRef replaced_SSLCreateContext(CFAllocatorRef alloc,
     return sslContext;
 }
 
-
 #pragma mark SSLHandshake Hook
 
 static OSStatus (*original_SSLHandshake)(SSLContextRef context);
@@ -227,7 +255,9 @@ static OSStatus replaced_SSLHandshake(SSLContextRef context)
     {
         // Do not check the cert and call SSLHandshake() again
         return original_SSLHandshake(context);
-    } else
+    } else if (result == errSSLClosedAbort) {
+		SSKLog(@"SSLHandshake error errSSLClosedAbort");
+    } else if (result != 0 && result != errSSLWouldBlock)
     {
         SSKLog(@"SSLHandshake error %d", result);
     }
@@ -235,21 +265,38 @@ static OSStatus replaced_SSLHandshake(SSLContextRef context)
     return result;
 }
 
-/*
+
+SecTrustRef addAnchorToTrust(SecTrustRef trust, SecCertificateRef trustedCert);
+//SecCertificateRef SecCertificateCreateWithData(CFAllocatorRef allocator, CFDataRef data); // set allocator to NULL for default
+
+// Apr  2 07:14:08 Scott-Glovers-iPhone apsd[3051] <Warning>: === SSL Kill Switch 2: replaced_SecTrustEvaluate(4)=0 
+// Apr  2 07:14:08 Scott-Glovers-iPhone syncdefaultsd[3066] <Warning>: === SSL Kill Switch 2: com.apple.syncdefaultsd SSLWrite() cmd POST /setAPNSToken HTTP/1.1, req len=867 
+// Apr  2 07:14:09 Scott-Glovers-iPhone apsd[3051] <Error>:  SecTrustEvaluate  [leaf AnchorApple CheckIntermediateMarkerOid CheckLeafMarkerOid SSLHostname] 
+// Apr  2 07:14:09 Scott-Glovers-iPhone apsd[3051] <Warning>: === SSL Kill Switch 2: replaced_SecTrustEvaluate(5)=0 
+
 #pragma mark SecTrustEvaluate Hook
-
 static OSStatus (*original_SecTrustEvaluate)(SecTrustRef trust, SecTrustResultType *result);
-
 static OSStatus replaced_SecTrustEvaluate(SecTrustRef trust, SecTrustResultType *result)
 {
     OSStatus status = original_SecTrustEvaluate(trust, result);
     
-    if (*result == kSecTrustResultOtherError) return status;
-    
-    *result = kSecTrustResultProceed;
-    return errSecSuccess;
+    //if (*result == kSecTrustResultOtherError) return status;
+    //*result = kSecTrustResultProceed;
+    SSKLog(@"%s(%d)=%d", __FUNCTION__, *result, status);
+    /*
+    if (*result == kSecTrustResultRecoverableTrustFailure) {
+		// add my proxy's der format cert to the anchor cert store
+		//NSError *error = nil;
+		NSData *derdata = [[NSData alloc] initWithContentsOfFile:@"/tmp/proxy2_ca.der"];
+		SecCertificateRef certref = SecCertificateCreateWithData(NULL, (CFDataRef)derdata);
+		trust = addAnchorToTrust(trust, certref);
+		*result = kSecTrustResultProceed;
+	}
+    else if (*result == kSecTrustResultUnspecified) *result = kSecTrustResultProceed;
+    */
+    return status;
 }
-*/
+
 #pragma mark CocoaSPDY hook
 
 static void (*oldSetTLSTrustEvaluator)(id self, SEL _cmd, id evaluator);
@@ -276,20 +323,6 @@ static void newRegisterOrigin(id self, SEL _cmd, NSString *origin)
     // This should force the App to downgrade from SPDY to HTTPS
 }
 
-/*
-static OSStatus (*oldSecTrustEvaluate)(SecTrustRef trust, SecTrustResultType *result);
-
-static OSStatus newSecTrustEvaluate(SecTrustRef trust, SecTrustResultType *result)
-{
-    OSStatus status = oldSecTrustEvaluate(trust, result);
- 
-    if (*result == kSecTrustResultOtherError) return status;
-
-    *result = kSecTrustResultProceed;
-    return errSecSuccess;
-}
-*/
-
 
 #pragma mark Dylib Constructor
 
@@ -299,7 +332,7 @@ __attribute__((constructor)) static void init(int argc, const char **argv)
     if (shouldHookFromPreference(PREFERENCE_KEY))
     {
         // Substrate-based hooking; only hook if the preference file says so
-        SSKLog(@"Subtrate hook enabled.");
+        //SSKLog(@"Subtrate hook enabled.");
 
         // SecureTransport hooks
         MSHookFunction((void *) SSLHandshake,(void *)  replaced_SSLHandshake, (void **) &original_SSLHandshake);
@@ -307,7 +340,10 @@ __attribute__((constructor)) static void init(int argc, const char **argv)
         MSHookFunction((void *) SSLCreateContext,(void *)  replaced_SSLCreateContext, (void **) &original_SSLCreateContext);
         MSHookFunction((void *) SSLRead,(void *)  replaced_SSLRead, (void **) &original_SSLRead);
         MSHookFunction((void *) SSLWrite,(void *)  replaced_SSLWrite, (void **) &original_SSLWrite);
-        //MSHookFunction((void *) SecTrustEvaluate,(void *)  replaced_SecTrustEvaluate, (void **) &original_SecTrustEvaluate);
+        MSHookFunction((void *) CFReadStreamCreateForHTTPRequest,(void *)  replaced_CFReadStreamCreateForHTTPRequest, (void **) &original_CFReadStreamCreateForHTTPRequest);
+        MSHookFunction((void *) CFHTTPMessageCreateRequest,(void *)  replaced_CFHTTPMessageCreateRequest, (void **) &original_CFHTTPMessageCreateRequest);
+        MSHookFunction((void *) CFHTTPMessageSetBody,(void *)  replaced_CFHTTPMessageSetBody, (void **) &original_CFHTTPMessageSetBody);
+        MSHookFunction((void *) SecTrustEvaluate,(void *)  replaced_SecTrustEvaluate, (void **) &original_SecTrustEvaluate);
 
         // CocoaSPDY hooks - https://github.com/twitter/CocoaSPDY
         // TODO: Enable these hooks for the fishhook-based hooking so it works on OS X too
