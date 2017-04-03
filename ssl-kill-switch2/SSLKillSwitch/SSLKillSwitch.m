@@ -10,6 +10,7 @@
 #import <CoreFoundation/CoreFoundation.h>
 #import <Security/SecureTransport.h>
 #import <Security/Security.h>
+#import <Security/SecPolicy.h>
 #import <UIKit/UIKit.h>
 
 #if SUBSTRATE_BUILD
@@ -274,6 +275,18 @@ SecTrustRef addAnchorToTrust(SecTrustRef trust, SecCertificateRef trustedCert);
 // Apr  2 07:14:09 Scott-Glovers-iPhone apsd[3051] <Error>:  SecTrustEvaluate  [leaf AnchorApple CheckIntermediateMarkerOid CheckLeafMarkerOid SSLHostname] 
 // Apr  2 07:14:09 Scott-Glovers-iPhone apsd[3051] <Warning>: === SSL Kill Switch 2: replaced_SecTrustEvaluate(5)=0 
 
+// SecPolicyRef SecPolicyCreateSSL(Boolean server, CFStringRef __nullable hostname)
+// SecPolicyRef SecPolicyCreateWithProperties(CFTypeRef policyIdentifier, CFDictionaryRef __nullable properties)
+ 
+#pragma mark SecPolicyCreateWithProperties Hook
+static SecPolicyRef (*original_SecPolicyCreateWithProperties)(CFTypeRef policyIdentifier, CFDictionaryRef properties);
+static SecPolicyRef replaced_SecPolicyCreateWithProperties(CFTypeRef policyIdentifier, CFDictionaryRef properties)
+{
+    SecPolicyRef policy = original_SecPolicyCreateWithProperties(policyIdentifier, properties);
+    SSKLog(@"%s", __FUNCTION__);
+    return policy;
+}
+
 #pragma mark SecTrustEvaluate Hook
 static OSStatus (*original_SecTrustEvaluate)(SecTrustRef trust, SecTrustResultType *result);
 static OSStatus replaced_SecTrustEvaluate(SecTrustRef trust, SecTrustResultType *result)
@@ -342,6 +355,7 @@ __attribute__((constructor)) static void init(int argc, const char **argv)
         MSHookFunction((void *) CFHTTPMessageCreateRequest,(void *)  replaced_CFHTTPMessageCreateRequest, (void **) &original_CFHTTPMessageCreateRequest);
         MSHookFunction((void *) CFHTTPMessageSetBody,(void *)  replaced_CFHTTPMessageSetBody, (void **) &original_CFHTTPMessageSetBody);
         MSHookFunction((void *) SecTrustEvaluate,(void *)  replaced_SecTrustEvaluate, (void **) &original_SecTrustEvaluate);
+        MSHookFunction((void *) SecPolicyCreateWithProperties,(void *)  replaced_SecPolicyCreateWithProperties, (void **) &original_SecPolicyCreateWithProperties);
 
         // CocoaSPDY hooks - https://github.com/twitter/CocoaSPDY
         // TODO: Enable these hooks for the fishhook-based hooking so it works on OS X too
