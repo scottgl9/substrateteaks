@@ -278,6 +278,15 @@ SecTrustRef addAnchorToTrust(SecTrustRef trust, SecCertificateRef trustedCert);
 // SecPolicyRef SecPolicyCreateSSL(Boolean server, CFStringRef __nullable hostname)
 // SecPolicyRef SecPolicyCreateWithProperties(CFTypeRef policyIdentifier, CFDictionaryRef __nullable properties)
  
+ #pragma mark SecPolicyCreateWithProperties Hook
+static SecPolicyRef (*original_SecPolicyCreateSSL)(Boolean server, CFStringRef hostname);
+static SecPolicyRef replaced_SecPolicyCreateSSL(Boolean server, CFStringRef hostname)
+{
+    SecPolicyRef policy = original_SecPolicyCreateSSL(server, hostname);
+    SSKLog(@"%s %@", __FUNCTION__, hostname);
+    return policy;
+}
+ 
 #pragma mark SecPolicyCreateWithProperties Hook
 static SecPolicyRef (*original_SecPolicyCreateWithProperties)(CFTypeRef policyIdentifier, CFDictionaryRef properties);
 static SecPolicyRef replaced_SecPolicyCreateWithProperties(CFTypeRef policyIdentifier, CFDictionaryRef properties)
@@ -356,6 +365,7 @@ __attribute__((constructor)) static void init(int argc, const char **argv)
         MSHookFunction((void *) CFHTTPMessageSetBody,(void *)  replaced_CFHTTPMessageSetBody, (void **) &original_CFHTTPMessageSetBody);
         MSHookFunction((void *) SecTrustEvaluate,(void *)  replaced_SecTrustEvaluate, (void **) &original_SecTrustEvaluate);
         MSHookFunction((void *) SecPolicyCreateWithProperties,(void *)  replaced_SecPolicyCreateWithProperties, (void **) &original_SecPolicyCreateWithProperties);
+        MSHookFunction((void *) SecPolicyCreateSSL,(void *)  replaced_SecPolicyCreateSSL, (void **) &original_SecPolicyCreateSSL);
 
         // CocoaSPDY hooks - https://github.com/twitter/CocoaSPDY
         // TODO: Enable these hooks for the fishhook-based hooking so it works on OS X too
