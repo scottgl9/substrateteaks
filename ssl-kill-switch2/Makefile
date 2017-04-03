@@ -14,8 +14,8 @@ SSLKillSwitch2_CFLAGS=-DSUBSTRATE_BUILD
 include $(THEOS_MAKE_PATH)/tweak.mk
 include $(THEOS_MAKE_PATH)/aggregate.mk
 
-#IPHONEADDR=192.168.12.173
-IPHONEADDR=10.79.0.5
+IPHONEADDR=192.168.12.173
+#IPHONEADDR=10.79.0.5
 
 doclean:
 	rm -f packages/com.nablac0d3.SSLKillSwitch2_0.10-*+debug_iphoneos-arm.deb

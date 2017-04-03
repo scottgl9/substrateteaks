@@ -283,17 +283,15 @@ static OSStatus replaced_SecTrustEvaluate(SecTrustRef trust, SecTrustResultType 
     //if (*result == kSecTrustResultOtherError) return status;
     //*result = kSecTrustResultProceed;
     SSKLog(@"%s(%d)=%d", __FUNCTION__, *result, status);
-    /*
     if (*result == kSecTrustResultRecoverableTrustFailure) {
 		// add my proxy's der format cert to the anchor cert store
 		//NSError *error = nil;
-		NSData *derdata = [[NSData alloc] initWithContentsOfFile:@"/tmp/proxy2_ca.der"];
-		SecCertificateRef certref = SecCertificateCreateWithData(NULL, (CFDataRef)derdata);
-		trust = addAnchorToTrust(trust, certref);
+		//NSData *derdata = [[NSData alloc] initWithContentsOfFile:@"/tmp/proxy2_ca.der"];
+		//SecCertificateRef certref = SecCertificateCreateWithData(NULL, (CFDataRef)derdata);
+		//trust = addAnchorToTrust(trust, certref);
 		*result = kSecTrustResultProceed;
 	}
     else if (*result == kSecTrustResultUnspecified) *result = kSecTrustResultProceed;
-    */
     return status;
 }
 
