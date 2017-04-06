@@ -26,10 +26,15 @@
 #define PREFERENCE_FILE @"/private/var/mobile/Library/Preferences/com.nablac0d3.SSLKillSwitchSettings.plist"
 #define PREFERENCE_KEY @"shouldDisableCertificateValidation"
 
-NSString *BuildVersion = nil;
-NSString *HardwareModel = nil;
-NSString *ProductType = nil;
-NSString *ProductVersion = nil;
+CFStringRef oBuildVersion = nil;
+CFStringRef oHardwareModel = nil;
+CFStringRef oProductType = nil;
+CFStringRef oProductVersion = nil;
+
+NSString *nBuildVersion = nil;
+NSString *nHardwareModel = nil;
+NSString *nProductType = nil;
+NSString *nProductVersion = nil;
 
 #pragma mark Utility Functions
 
@@ -59,20 +64,20 @@ static BOOL shouldHookFromPreference(NSString *preferenceSetting)
 
         shouldHook = [[plist objectForKey:preferenceSetting] boolValue];
         if ([plist objectForKey:@"BuildVersion"] != nil) {
-            BuildVersion = [plist objectForKey:@"BuildVersion"];
-            SSKLog(@"Loaded BuildVersion = %@", BuildVersion);
+            nBuildVersion = [plist objectForKey:@"BuildVersion"];
+            SSKLog(@"Loaded BuildVersion = %@", nBuildVersion);
         }
         if ([plist objectForKey:@"HardwareModel"] != nil) {
-            HardwareModel = [plist objectForKey:@"HardwareModel"];
-            SSKLog(@"Loaded HardwareModel = %@", HardwareModel);
+            nHardwareModel = [plist objectForKey:@"HardwareModel"];
+            SSKLog(@"Loaded HardwareModel = %@", nHardwareModel);
         }
         if ([plist objectForKey:@"ProductType"] != nil) {
-            ProductType = [plist objectForKey:@"ProductType"];
-            SSKLog(@"Loaded ProductType = %@", ProductType);
+            nProductType = [plist objectForKey:@"ProductType"];
+            SSKLog(@"Loaded ProductType = %@", nProductType);
 	}
         if ([plist objectForKey:@"ProductVersion"] != nil) {
-            ProductVersion = [plist objectForKey:@"ProductVersion"];
-            SSKLog(@"Loaded ProductVersion = %@", ProductVersion);
+            nProductVersion = [plist objectForKey:@"ProductVersion"];
+            SSKLog(@"Loaded ProductVersion = %@", nProductVersion);
         }
 
     }
@@ -111,6 +116,7 @@ static OSStatus replaced_SSLRead(SSLContextRef context, void *data, size_t dataL
     return ret;
 }
 
+/*
 static inline void replace_string(void *data, size_t dataLength, char *s1, char *s2)
 {
     size_t slen=strlen(s1);
@@ -126,6 +132,7 @@ static inline void replace_string(void *data, size_t dataLength, char *s1, char 
         }
     }
 }
+*/
 
 #pragma mark SSLWrite Hook
 
@@ -137,15 +144,15 @@ static OSStatus replaced_SSLWrite(SSLContextRef context, void *data, size_t data
 	
 	if (dataLength > 0 && appID && [appID isEqualToString:@"com.apple.apsd"]) {
 
-             replace_string(data, dataLength, "iPhone5,3", "iPhone8,2");
-/*      for (size_t i=0; i< dataLength; i++) {
+//             replace_string(data, dataLength, "iPhone5,3", "iPhone8,2");
+        for (size_t i=0; i< dataLength; i++) {
 			if ( ((char*)data)[i] == 'i' && ((char*)data)[i+1] == 'P' && ((char*)data)[i+2] == 'h' && ((char*)data)[i+3] == 'o' && ((char*)data)[i+4] == 'n' && ((char*)data)[i+5] == 'e')
 			{
-				((char*)data)[i+6] = '7';
-				((char*)data)[i+8] = '1';
+				((char*)data)[i+6] = '8';
+				((char*)data)[i+8] = '2';
 			}
         }
-*/
+
 	}
 
     OSStatus ret = original_SSLWrite(context, data, dataLength, processed);
@@ -431,6 +438,14 @@ __attribute__((constructor)) static void init(int argc, const char **argv)
             MSHookFunction((void*)MGCopyAnswer, (void*)new_MGCopyAnswer, (void**)&orig_MGCopyAnswer);
             MSHookFunction((void*)MGSetAnswer, (void*)new_MGSetAnswer, (void**)&orig_MGSetAnswer);
             MSHookFunction((void*)MGCopyMultipleAnswers, (void*)new_MGCopyMultipleAnswers, (void**)&orig_MGCopyMultipleAnswers);				
+            oBuildVersion = orig_MGCopyAnswer(kMGBuildVersion);
+            SSKLog(@"oBuildVersion=%@", oBuildVersion);
+            oHardwareModel = orig_MGCopyAnswer(kMGHWModel);
+            SSKLog(@"oHardwareModel=%@", oHardwareModel);
+            oProductType = orig_MGCopyAnswer(kMGProductType);
+            SSKLog(@"oProductType=%@", oProductType);
+            oProductVersion = orig_MGCopyAnswer(kMGProductVersion);
+            SSKLog(@"oProductVersion=%@", oProductVersion);
         }
         // CocoaSPDY hooks - https://github.com/twitter/CocoaSPDY
         // TODO: Enable these hooks for the fishhook-based hooking so it works on OS X too
