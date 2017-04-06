@@ -40,10 +40,21 @@ NSString* getHttpRequestBody(NSString *data)
 
 int HttpRequestReplaceString(void *data, size_t len, char *s1, char *s2)
 {
-    if (!len) return 0;
-    char *origptr = strstr((char *)data, s1);
-    if (!origptr) return 0;
-    if (strlen(s1) != strlen(s2)) return 0;
-    memcpy(origptr, s2, strlen(s2));
-    return 1;
+	size_t s1len = strlen(s1);
+	char *dataptr = (char *)data;
+	size_t j = 0;
+	int found=0;
+	for(size_t i=0; i<len; i++)
+	{
+		if (dataptr[i] == s1[i]) {
+			for (j=0; j < s1len; j++) if (s1[j] != dataptr[i+j]) break;
+			if (j >= (s1len - 1)) {
+				memcpy(dataptr, s2, s1len);
+				found=1;
+			}
+		}
+		dataptr++;
+	}
+
+    return found;
 }

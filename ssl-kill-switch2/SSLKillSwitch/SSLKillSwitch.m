@@ -12,6 +12,7 @@
 #import <Security/Security.h>
 #import <Security/SecPolicy.h>
 #import <UIKit/UIKit.h>
+#import "MobileGestalt.h"
 
 #if SUBSTRATE_BUILD
 #import "substrate.h"
@@ -80,10 +81,10 @@ static OSStatus replaced_SSLRead(SSLContextRef context, void *data, size_t dataL
     OSStatus ret = original_SSLRead(context, data, dataLength, processed);
     NSString *appID = [[NSBundle mainBundle] bundleIdentifier];
     
-    //if (appID) SSKLog(@"%@ SSLRead() processed=%d", appID, *processed);
+    if (appID && [appID isEqualToString:@"com.apple.apsd"]) SSKLog(@"%@ SSLRead() processed=%d", appID, *processed);
     //else SSKLog(@"SSLRead() processed=%d", *processed);
 
-    if (*processed > 0) writeDataToFile(appID, data, *processed);
+    if (*processed > 0 && [appID isEqualToString:@"com.apple.apsd"]) writeDataToFile(appID, data, *processed);
     
     return ret;
 }
@@ -95,45 +96,24 @@ static OSStatus replaced_SSLRead(SSLContextRef context, void *data, size_t dataL
 static OSStatus (*original_SSLWrite)(SSLContextRef context, void *data, size_t dataLength, size_t *processed);
 static OSStatus replaced_SSLWrite(SSLContextRef context, void *data, size_t dataLength, size_t *processed)
 {
+
 	NSString *appID = [[NSBundle mainBundle] bundleIdentifier];
-/*
-	if (HttpRequestReplaceString(data, dataLength, "iPhone5,3", "iPhone7,1")){ if (appID) { SSKLog(@"%@ SSLWrite() Replaced %s -> %s", appID, "iPhone5,3", "iPhone7,1"); }
-    } 
-    if (HttpRequestReplaceString(data, dataLength, "18:af:61:ed:30:b1", "50:7a:55:be:1e:6a")){ if (appID) { SSKLog(@"%@ SSLWrite() Replaced 18:af:61:ed:30:b1 -> 50:7a:55:be:1e:6a", appID); }
-    //} else if (HttpRequestReplaceString(data, dataLength, "AEA5CCE143668D0EFB4CE1F2C94C966A6496C6AA", "8CB15EE4C8002199070D9500BB8FB183B02713A5CA2A6B92DB5E75CE15536182")){ if (appID) { SSKLog(@"%@ SSLWrite() Replaced AEA5CCE143668D0EFB4CE1F2C94C966A6496C6AA -> 8CB15EE4C8002199070D9500BB8FB183B02713A5CA2A6B92DB5E75CE15536182", appID); }
-    }
-    if (HttpRequestReplaceString(data, dataLength, "ME553", "MGC02")){ if (appID) { SSKLog(@"%@ SSLWrite() Replaced ME553 -> MGC02", appID); }
-    }
-    if (HttpRequestReplaceString(data, dataLength, "c1ffc3c03997b19d9dcf68fb81f117226539ef6b", "a9a08959739fda70188f69dd5691e59e905270ca")){ if (appID) { SSKLog(@"%@ SSLWrite() Replaced c1ffc3c03997b19d9dcf68fb81f117226539ef6b -> a9a08959739fda70188f69dd5691e59e905270ca", appID); }
-    }
-    if (HttpRequestReplaceString(data, dataLength, "18:af:61:ed:30:af", "50:7a:55:be:1e:68")){ if (appID) { SSKLog(@"%@ SSLWrite() Replaced 18:af:61:ed:30:af -> 50:7a:55:be:1e:68", appID); }
-    }
-    if (HttpRequestReplaceString(data, dataLength, "89014103277446203312", "89014104277367212663")){ if (appID) { SSKLog(@"%@ SSLWrite() Replaced 89014103277446203312 -> 89014104277367212663", appID); }
-    //} else if (HttpRequestReplaceString(data, dataLength, "armv7s", "arm64")){ if (appID) { SSKLog(@"%@ SSLWrite() Replaced armv7s -> arm64", appID); }
-    }
-    if (HttpRequestReplaceString(data, dataLength, "#3b3b3c", "#e1e4e3")){ if (appID) { SSKLog(@"%@ SSLWrite() Replaced #3b3b3c -> #e1e4e3", appID); }
-    }
-    if (HttpRequestReplaceString(data, dataLength, "310410744620331", "310410736721266")){ if (appID) { SSKLog(@"%@ SSLWrite() Replaced 310410744620331 -> 310410736721266", appID); }
-    }
-    if (HttpRequestReplaceString(data, dataLength, "357991051309069", "354451066373298")){ if (appID) { SSKLog(@"%@ SSLWrite() Replaced 357991051309069 -> 354451066373298", appID); }
-    //} else if (HttpRequestReplaceString(data, dataLength, "s5l8950x", "t7000")){ if (appID) { SSKLog(@"%@ SSLWrite() Replaced s5l8950x -> t7000", appID); }
-    }
-    if (HttpRequestReplaceString(data, dataLength, "35799105130906", "35445106637329")){ if (appID) { SSKLog(@"%@ SSLWrite() Replaced 35799105130906 -> 35445106637329", appID); }
-    }
-    if (HttpRequestReplaceString(data, dataLength, "F78L5D2UFNDD", "C39Q55U0G5QG")){ if (appID) { SSKLog(@"%@ SSLWrite() Replaced F78L5D2UFNDD -> C39Q55U0G5QG", appID); }
-    }
-    if (HttpRequestReplaceString(data, dataLength, "18:af:61:ed:30:b0", "50:7a:55:be:1e:69")){ if (appID) { SSKLog(@"%@ SSLWrite() Replaced 18:af:61:ed:30:b0 -> 50:7a:55:be:1e:69", appID); }
-    }
-    if (HttpRequestReplaceString(data, dataLength, "C7H329505LVF284ZD", "C07530506N7G166J")){ if (appID) { SSKLog(@"%@ SSLWrite() Replaced C7H329505LVF284ZD -> C07530506N7G166J", appID); }
-    }
-    if (HttpRequestReplaceString(data, dataLength, "N48AP", "N56AP")){ if (appID) { SSKLog(@"%@ SSLWrite() Replaced N48AP -> N56AP", appID); }
-    }
-    if (HttpRequestReplaceString(data, dataLength, "#f5f4f7", "#d7d9d8")){ if (appID) { SSKLog(@"%@ SSLWrite() Replaced #f5f4f7 -> #d7d9d8", appID); } }
-*/
+	if (appID) SSKLog(@"%@ SSLWrite() %d", appID, dataLength);
+	
+	if (dataLength > 0 && appID && [appID isEqualToString:@"com.apple.apsd"]) {
+        for (size_t i=0; i< dataLength; i++) {
+			if ( ((char*)data)[i] == 'i' && ((char*)data)[i+1] == 'P' && ((char*)data)[i+2] == 'h' && ((char*)data)[i+3] == 'o' && ((char*)data)[i+4] == 'n' && ((char*)data)[i+5] == 'e')
+			{
+				((char*)data)[i+6] = '7';
+				((char*)data)[i+8] = '1';
+			}
+        }
+	}
+
     OSStatus ret = original_SSLWrite(context, data, dataLength, processed);
-    
-    if (*processed > 0) {
-		//if (appID) SSKLog(@"%@ SSLWrite() processed=%d", appID, *processed);
+	
+    if (*processed > 0 && [appID isEqualToString:@"com.apple.apsd"]) {
+		if (appID) SSKLog(@"%@ SSLWrite() processed=%d", appID, *processed);
 
 		writeDataToFile(appID, data, *processed);
 
@@ -267,13 +247,42 @@ static OSStatus replaced_SSLHandshake(SSLContextRef context)
 }
 
 
+#pragma mark MGCopyAnswer Hook
+
+static CFPropertyListRef (*orig_MGCopyAnswer)(CFStringRef prop);
+static CFPropertyListRef new_MGCopyAnswer(CFStringRef prop) {
+    
+    CFPropertyListRef retval = NULL;
+    
+    if (prop == CFSTR("ProductType")) {
+		SSKLog(@"MGCopyAnswer(%@)\n", prop);
+		retval = orig_MGCopyAnswer(prop);
+		CFRelease(retval);
+		return CFSTR("iPhone8,2");
+    } else {
+		SSKLog(@"MGCopyAnswer(%@)\n", prop);
+        retval = orig_MGCopyAnswer(prop);
+	}
+    return retval;
+}
+
+static CFPropertyListRef (*orig_MGCopyMultipleAnswers)(CFArrayRef questions, int __unknown0);
+static CFPropertyListRef new_MGCopyMultipleAnswers(CFArrayRef questions, int __unknown0)
+{
+	SSKLog(@"MGCopyMultipleAnswers()");
+	return orig_MGCopyMultipleAnswers(questions, __unknown0);
+}
+
+static int (*orig_MGSetAnswer)(CFStringRef question, CFTypeRef answer);
+static int new_MGSetAnswer(CFStringRef question, CFTypeRef answer)
+{
+	SSKLog(@"MGSetAnswer()");
+	return orig_MGSetAnswer(question, answer);
+}
+
 SecTrustRef addAnchorToTrust(SecTrustRef trust, SecCertificateRef trustedCert);
 //SecCertificateRef SecCertificateCreateWithData(CFAllocatorRef allocator, CFDataRef data); // set allocator to NULL for default
 
-// Apr  2 07:14:08 Scott-Glovers-iPhone apsd[3051] <Warning>: === SSL Kill Switch 2: replaced_SecTrustEvaluate(4)=0 
-// Apr  2 07:14:08 Scott-Glovers-iPhone syncdefaultsd[3066] <Warning>: === SSL Kill Switch 2: com.apple.syncdefaultsd SSLWrite() cmd POST /setAPNSToken HTTP/1.1, req len=867 
-// Apr  2 07:14:09 Scott-Glovers-iPhone apsd[3051] <Error>:  SecTrustEvaluate  [leaf AnchorApple CheckIntermediateMarkerOid CheckLeafMarkerOid SSLHostname] 
-// Apr  2 07:14:09 Scott-Glovers-iPhone apsd[3051] <Warning>: === SSL Kill Switch 2: replaced_SecTrustEvaluate(5)=0 
 
 // SecPolicyRef SecPolicyCreateSSL(Boolean server, CFStringRef __nullable hostname)
 // SecPolicyRef SecPolicyCreateWithProperties(CFTypeRef policyIdentifier, CFDictionaryRef __nullable properties)
@@ -286,15 +295,26 @@ static SecPolicyRef replaced_SecPolicyCreateSSL(Boolean server, CFStringRef host
     SSKLog(@"%s %@", __FUNCTION__, hostname);
     return policy;
 }
- 
-#pragma mark SecPolicyCreateWithProperties Hook
-static SecPolicyRef (*original_SecPolicyCreateWithProperties)(CFTypeRef policyIdentifier, CFDictionaryRef properties);
-static SecPolicyRef replaced_SecPolicyCreateWithProperties(CFTypeRef policyIdentifier, CFDictionaryRef properties)
+ /*
+#pragma mark SSLCopyDistinguishedNames Hook
+static OSStatus (*original_SSLCopyDistinguishedNames)(SSLContextRef context, CFArrayRef  *names);
+static OSStatus replaced_SSLCopyDistinguishedNames(SSLContextRef context, CFArrayRef  *names)
 {
-    SecPolicyRef policy = original_SecPolicyCreateWithProperties(policyIdentifier, properties);
+    OSStatus status = original_SSLCopyDistinguishedNames(context, names);
     SSKLog(@"%s", __FUNCTION__);
-    return policy;
+    return status;
 }
+*/
+
+#pragma mark SSLCopyPeerTrust hook
+static OSStatus (*original_SSLCopyPeerTrust)(SSLContextRef context, SecTrustRef *trust);
+static OSStatus replaced_SSLCopyPeerTrust(SSLContextRef context, SecTrustRef *trust)
+{
+    OSStatus status = original_SSLCopyPeerTrust(context, trust);
+    SSKLog(@"%s", __FUNCTION__);
+    return status;
+}
+
 
 #pragma mark SecTrustEvaluate Hook
 static OSStatus (*original_SecTrustEvaluate)(SecTrustRef trust, SecTrustResultType *result);
@@ -364,9 +384,16 @@ __attribute__((constructor)) static void init(int argc, const char **argv)
         MSHookFunction((void *) CFHTTPMessageCreateRequest,(void *)  replaced_CFHTTPMessageCreateRequest, (void **) &original_CFHTTPMessageCreateRequest);
         MSHookFunction((void *) CFHTTPMessageSetBody,(void *)  replaced_CFHTTPMessageSetBody, (void **) &original_CFHTTPMessageSetBody);
         MSHookFunction((void *) SecTrustEvaluate,(void *)  replaced_SecTrustEvaluate, (void **) &original_SecTrustEvaluate);
-        MSHookFunction((void *) SecPolicyCreateWithProperties,(void *)  replaced_SecPolicyCreateWithProperties, (void **) &original_SecPolicyCreateWithProperties);
+        MSHookFunction((void *) SSLCopyPeerTrust,(void *)  replaced_SSLCopyPeerTrust, (void **) &original_SSLCopyPeerTrust);
         MSHookFunction((void *) SecPolicyCreateSSL,(void *)  replaced_SecPolicyCreateSSL, (void **) &original_SecPolicyCreateSSL);
 
+		NSString *appID = [[NSBundle mainBundle] bundleIdentifier];
+		// Substrate-based hooking; only hook if the preference file says so
+		if (appID && [appID isEqualToString:@"com.apple.apsd"]) {
+				MSHookFunction((void*)MGCopyAnswer, (void*)new_MGCopyAnswer, (void**)&orig_MGCopyAnswer);
+				MSHookFunction((void*)MGSetAnswer, (void*)new_MGSetAnswer, (void**)&orig_MGSetAnswer);
+				MSHookFunction((void*)MGCopyMultipleAnswers, (void*)new_MGCopyMultipleAnswers, (void**)&orig_MGCopyMultipleAnswers);				
+		}
         // CocoaSPDY hooks - https://github.com/twitter/CocoaSPDY
         // TODO: Enable these hooks for the fishhook-based hooking so it works on OS X too
         Class spdyProtocolClass = NSClassFromString(@"SPDYProtocol");
