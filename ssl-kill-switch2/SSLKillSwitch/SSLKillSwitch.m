@@ -26,6 +26,11 @@
 #define PREFERENCE_FILE @"/private/var/mobile/Library/Preferences/com.nablac0d3.SSLKillSwitchSettings.plist"
 #define PREFERENCE_KEY @"shouldDisableCertificateValidation"
 
+NSString *BuildVersion = nil;
+NSString *HardwareModel = nil;
+NSString *ProductType = nil;
+NSString *ProductVersion = nil;
+
 #pragma mark Utility Functions
 
 static void SSKLog(NSString *format, ...)
@@ -44,15 +49,32 @@ static BOOL shouldHookFromPreference(NSString *preferenceSetting)
 {
     BOOL shouldHook = NO;
     NSMutableDictionary* plist = [[NSMutableDictionary alloc] initWithContentsOfFile:PREFERENCE_FILE];
-    
+    //NSString *albumName; 
     if (!plist)
     {
         SSKLog(@"Preference file not found.");
     }
     else
     {
+
         shouldHook = [[plist objectForKey:preferenceSetting] boolValue];
-        //SSKLog(@"Preference set to %d.", shouldHook);
+        if ([plist objectForKey:@"BuildVersion"] != nil) {
+            BuildVersion = [plist objectForKey:@"BuildVersion"];
+            SSKLog(@"Loaded BuildVersion = %@", BuildVersion);
+        }
+        if ([plist objectForKey:@"HardwareModel"] != nil) {
+            HardwareModel = [plist objectForKey:@"HardwareModel"];
+            SSKLog(@"Loaded HardwareModel = %@", HardwareModel);
+        }
+        if ([plist objectForKey:@"ProductType"] != nil) {
+            ProductType = [plist objectForKey:@"ProductType"];
+            SSKLog(@"Loaded ProductType = %@", ProductType);
+	}
+        if ([plist objectForKey:@"ProductVersion"] != nil) {
+            ProductVersion = [plist objectForKey:@"ProductVersion"];
+            SSKLog(@"Loaded ProductVersion = %@", ProductVersion);
+        }
+
     }
     return shouldHook;
 }
@@ -89,7 +111,21 @@ static OSStatus replaced_SSLRead(SSLContextRef context, void *data, size_t dataL
     return ret;
 }
 
-
+static inline void replace_string(void *data, size_t dataLength, char *s1, char *s2)
+{
+    size_t slen=strlen(s1);
+    for (size_t i=0; i< dataLength; i++) {
+        if ( ((char*)data)[i] == s1[0]) {
+            size_t j;
+            for(j=1; j<slen; j++) {
+                if (((char*)data)[i+j] != s1[j]) break;
+            }
+            if (j == slen) {
+                memcpy(&(((char*)data)[i]), s2, slen);
+            }
+        }
+    }
+}
 
 #pragma mark SSLWrite Hook
 
@@ -98,16 +134,18 @@ static OSStatus replaced_SSLWrite(SSLContextRef context, void *data, size_t data
 {
 
 	NSString *appID = [[NSBundle mainBundle] bundleIdentifier];
-	if (appID) SSKLog(@"%@ SSLWrite() %d", appID, dataLength);
 	
 	if (dataLength > 0 && appID && [appID isEqualToString:@"com.apple.apsd"]) {
-        for (size_t i=0; i< dataLength; i++) {
+
+             replace_string(data, dataLength, "iPhone5,3", "iPhone8,2");
+/*      for (size_t i=0; i< dataLength; i++) {
 			if ( ((char*)data)[i] == 'i' && ((char*)data)[i+1] == 'P' && ((char*)data)[i+2] == 'h' && ((char*)data)[i+3] == 'o' && ((char*)data)[i+4] == 'n' && ((char*)data)[i+5] == 'e')
 			{
 				((char*)data)[i+6] = '7';
 				((char*)data)[i+8] = '1';
 			}
         }
+*/
 	}
 
     OSStatus ret = original_SSLWrite(context, data, dataLength, processed);
@@ -387,13 +425,13 @@ __attribute__((constructor)) static void init(int argc, const char **argv)
         MSHookFunction((void *) SSLCopyPeerTrust,(void *)  replaced_SSLCopyPeerTrust, (void **) &original_SSLCopyPeerTrust);
         MSHookFunction((void *) SecPolicyCreateSSL,(void *)  replaced_SecPolicyCreateSSL, (void **) &original_SecPolicyCreateSSL);
 
-		NSString *appID = [[NSBundle mainBundle] bundleIdentifier];
-		// Substrate-based hooking; only hook if the preference file says so
-		if (appID && [appID isEqualToString:@"com.apple.apsd"]) {
-				MSHookFunction((void*)MGCopyAnswer, (void*)new_MGCopyAnswer, (void**)&orig_MGCopyAnswer);
-				MSHookFunction((void*)MGSetAnswer, (void*)new_MGSetAnswer, (void**)&orig_MGSetAnswer);
-				MSHookFunction((void*)MGCopyMultipleAnswers, (void*)new_MGCopyMultipleAnswers, (void**)&orig_MGCopyMultipleAnswers);				
-		}
+        NSString *appID = [[NSBundle mainBundle] bundleIdentifier];
+        // Substrate-based hooking; only hook if the preference file says so
+        if (appID && [appID isEqualToString:@"com.apple.apsd"]) {
+            MSHookFunction((void*)MGCopyAnswer, (void*)new_MGCopyAnswer, (void**)&orig_MGCopyAnswer);
+            MSHookFunction((void*)MGSetAnswer, (void*)new_MGSetAnswer, (void**)&orig_MGSetAnswer);
+            MSHookFunction((void*)MGCopyMultipleAnswers, (void*)new_MGCopyMultipleAnswers, (void**)&orig_MGCopyMultipleAnswers);				
+        }
         // CocoaSPDY hooks - https://github.com/twitter/CocoaSPDY
         // TODO: Enable these hooks for the fishhook-based hooking so it works on OS X too
         Class spdyProtocolClass = NSClassFromString(@"SPDYProtocol");
