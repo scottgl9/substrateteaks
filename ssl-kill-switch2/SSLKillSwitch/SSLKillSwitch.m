@@ -26,12 +26,18 @@
 #define PREFERENCE_FILE @"/private/var/mobile/Library/Preferences/com.nablac0d3.SSLKillSwitchSettings.plist"
 #define PREFERENCE_KEY @"shouldDisableCertificateValidation"
 
+CFStringRef oBluetoothAddress = nil;
 CFStringRef oBuildVersion = nil;
+CFStringRef oDeviceColor = nil;
+CFStringRef oDeviceEnclosureColor = nil;
 CFStringRef oHardwareModel = nil;
+CFStringRef oModelNumber = nil;
 CFStringRef oProductType = nil;
 CFStringRef oProductVersion = nil;
 CFStringRef oSerialNumber = nil;
 CFStringRef oUniqueDeviceID = nil;
+CFStringRef oWifiAddress = nil;
+CFStringRef oDieID = nil;
 
 NSString *nBuildVersion = nil;
 NSString *nHardwareModel = nil;
@@ -441,10 +447,19 @@ __attribute__((constructor)) static void init(int argc, const char **argv)
             MSHookFunction((void*)MGCopyAnswer, (void*)new_MGCopyAnswer, (void**)&orig_MGCopyAnswer);
             MSHookFunction((void*)MGSetAnswer, (void*)new_MGSetAnswer, (void**)&orig_MGSetAnswer);
             MSHookFunction((void*)MGCopyMultipleAnswers, (void*)new_MGCopyMultipleAnswers, (void**)&orig_MGCopyMultipleAnswers);				
+
+            oBluetoothAddress = orig_MGCopyAnswer(kMGBluetoothAddress);
+            SSKLog(@"oBluetoothAddress=%@", oBluetoothAddress);
             oBuildVersion = orig_MGCopyAnswer(kMGBuildVersion);
             SSKLog(@"oBuildVersion=%@", oBuildVersion);
+            oDeviceColor = orig_MGCopyAnswer(kMGDeviceColor);
+            SSKLog(@"oDeviceColor=%@", oDeviceColor);
+            oDeviceEnclosureColor = orig_MGCopyAnswer(CFSTR("DeviceEnclosureColor"));
+            SSKLog(@"oDeviceEnclosureColor=%@", oDeviceEnclosureColor);
             oHardwareModel = orig_MGCopyAnswer(kMGHWModel);
             SSKLog(@"oHardwareModel=%@", oHardwareModel);
+            oModelNumber = orig_MGCopyAnswer(kMGModelNumber);
+            SSKLog(@"oModelNumber=%@", oModelNumber);
             oProductType = orig_MGCopyAnswer(kMGProductType);
             SSKLog(@"oProductType=%@", oProductType);
             oProductVersion = orig_MGCopyAnswer(kMGProductVersion);
@@ -453,7 +468,10 @@ __attribute__((constructor)) static void init(int argc, const char **argv)
             SSKLog(@"oSerialNumber=%@", oSerialNumber);
             oUniqueDeviceID = orig_MGCopyAnswer(kMGUniqueDeviceID);
             SSKLog(@"oUniqueDeviceID=%@", oUniqueDeviceID);
-            
+            oWifiAddress = orig_MGCopyAnswer(kMGWifiAddress);
+            SSKLog(@"oWifiAddress=%@", oWifiAddress);
+            oDieID = orig_MGCopyAnswer(kMGDieID);
+            SSKLog(@"oDieID=%@", oDieID);
         }
         // CocoaSPDY hooks - https://github.com/twitter/CocoaSPDY
         // TODO: Enable these hooks for the fishhook-based hooking so it works on OS X too
