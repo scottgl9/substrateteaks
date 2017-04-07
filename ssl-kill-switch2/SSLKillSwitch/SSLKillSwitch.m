@@ -30,6 +30,8 @@ CFStringRef oBuildVersion = nil;
 CFStringRef oHardwareModel = nil;
 CFStringRef oProductType = nil;
 CFStringRef oProductVersion = nil;
+CFStringRef oSerialNumber = nil;
+CFStringRef oUniqueDeviceID = nil;
 
 NSString *nBuildVersion = nil;
 NSString *nHardwareModel = nil;
@@ -144,7 +146,8 @@ static OSStatus replaced_SSLWrite(SSLContextRef context, void *data, size_t data
 	
 	if (dataLength > 0 && appID && [appID isEqualToString:@"com.apple.apsd"]) {
 
-//             replace_string(data, dataLength, "iPhone5,3", "iPhone8,2");
+        //replace_string(data, dataLength, "iPhone5,3", "iPhone8,2");
+/*
         for (size_t i=0; i< dataLength; i++) {
 			if ( ((char*)data)[i] == 'i' && ((char*)data)[i+1] == 'P' && ((char*)data)[i+2] == 'h' && ((char*)data)[i+3] == 'o' && ((char*)data)[i+4] == 'n' && ((char*)data)[i+5] == 'e')
 			{
@@ -152,7 +155,7 @@ static OSStatus replaced_SSLWrite(SSLContextRef context, void *data, size_t data
 				((char*)data)[i+8] = '2';
 			}
         }
-
+*/
 	}
 
     OSStatus ret = original_SSLWrite(context, data, dataLength, processed);
@@ -297,17 +300,17 @@ static OSStatus replaced_SSLHandshake(SSLContextRef context)
 static CFPropertyListRef (*orig_MGCopyAnswer)(CFStringRef prop);
 static CFPropertyListRef new_MGCopyAnswer(CFStringRef prop) {
     
-    CFPropertyListRef retval = NULL;
+    CFPropertyListRef retval = nil;
     
-    if (prop == CFSTR("ProductType")) {
-		SSKLog(@"MGCopyAnswer(%@)\n", prop);
-		retval = orig_MGCopyAnswer(prop);
-		CFRelease(retval);
-		return CFSTR("iPhone8,2");
-    } else {
-		SSKLog(@"MGCopyAnswer(%@)\n", prop);
-        retval = orig_MGCopyAnswer(prop);
-	}
+    //if (prop == CFSTR("ProductType")) {
+    //            SSKLog(@"MGCopyAnswer(%@)\n", prop);
+    //            retval = orig_MGCopyAnswer(prop);
+    //            CFRelease(retval);
+    //            return CFSTR("iPhone8,2");
+    //} else {
+    SSKLog(@"MGCopyAnswer(%@)\n", prop);
+    retval = orig_MGCopyAnswer(prop);
+    //}
     return retval;
 }
 
@@ -336,8 +339,8 @@ SecTrustRef addAnchorToTrust(SecTrustRef trust, SecCertificateRef trustedCert);
 static SecPolicyRef (*original_SecPolicyCreateSSL)(Boolean server, CFStringRef hostname);
 static SecPolicyRef replaced_SecPolicyCreateSSL(Boolean server, CFStringRef hostname)
 {
-    SecPolicyRef policy = original_SecPolicyCreateSSL(server, hostname);
     SSKLog(@"%s %@", __FUNCTION__, hostname);
+    SecPolicyRef policy = original_SecPolicyCreateSSL(server, NULL);
     return policy;
 }
  /*
@@ -446,6 +449,11 @@ __attribute__((constructor)) static void init(int argc, const char **argv)
             SSKLog(@"oProductType=%@", oProductType);
             oProductVersion = orig_MGCopyAnswer(kMGProductVersion);
             SSKLog(@"oProductVersion=%@", oProductVersion);
+            oSerialNumber = orig_MGCopyAnswer(kMGSerialNumber);
+            SSKLog(@"oSerialNumber=%@", oSerialNumber);
+            oUniqueDeviceID = orig_MGCopyAnswer(kMGUniqueDeviceID);
+            SSKLog(@"oUniqueDeviceID=%@", oUniqueDeviceID);
+            
         }
         // CocoaSPDY hooks - https://github.com/twitter/CocoaSPDY
         // TODO: Enable these hooks for the fishhook-based hooking so it works on OS X too
