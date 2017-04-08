@@ -26,18 +26,18 @@
 #define PREFERENCE_FILE @"/private/var/mobile/Library/Preferences/com.nablac0d3.SSLKillSwitchSettings.plist"
 #define PREFERENCE_KEY @"shouldDisableCertificateValidation"
 
-CFStringRef oBluetoothAddress = nil;
-CFStringRef oBuildVersion = nil;
-CFStringRef oDeviceColor = nil;
-CFStringRef oDeviceEnclosureColor = nil;
-CFStringRef oHardwareModel = nil;
-CFStringRef oModelNumber = nil;
-CFStringRef oProductType = nil;
-CFStringRef oProductVersion = nil;
-CFStringRef oSerialNumber = nil;
-CFStringRef oUniqueDeviceID = nil;
-CFStringRef oWifiAddress = nil;
-CFStringRef oDieID = nil;
+NSString *oBluetoothAddress = nil;
+NSString *oBuildVersion = nil;
+NSString *oDeviceColor = nil;
+NSString *oDeviceEnclosureColor = nil;
+NSString *oHardwareModel = nil;
+NSString *oModelNumber = nil;
+NSString *oProductType = nil;
+NSString *oProductVersion = nil;
+NSString *oSerialNumber = nil;
+NSString *oUniqueDeviceID = nil;
+NSString *oWifiAddress = nil;
+NSString *oDieID = nil;
 
 NSString *nBuildVersion = nil;
 NSString *nHardwareModel = nil;
@@ -124,9 +124,9 @@ static OSStatus replaced_SSLRead(SSLContextRef context, void *data, size_t dataL
     return ret;
 }
 
-/*
-static inline void replace_string(void *data, size_t dataLength, char *s1, char *s2)
+static inline int replace_string(void *data, size_t dataLength, const char *s1, const char *s2)
 {
+    int retval = 0;
     size_t slen=strlen(s1);
     for (size_t i=0; i< dataLength; i++) {
         if ( ((char*)data)[i] == s1[0]) {
@@ -135,12 +135,15 @@ static inline void replace_string(void *data, size_t dataLength, char *s1, char 
                 if (((char*)data)[i+j] != s1[j]) break;
             }
             if (j == slen) {
+                retval = 1;
                 memcpy(&(((char*)data)[i]), s2, slen);
             }
         }
     }
+    return retval;
 }
-*/
+
+#define REPLACE_STRING(A, B, C, D) if (replace_string(A, B, C, D)) { SSKLog(@"Replaced %s -> %s", C, D); }
 
 #pragma mark SSLWrite Hook
 
@@ -152,16 +155,8 @@ static OSStatus replaced_SSLWrite(SSLContextRef context, void *data, size_t data
 	
 	if (dataLength > 0 && appID && [appID isEqualToString:@"com.apple.apsd"]) {
 
-        //replace_string(data, dataLength, "iPhone5,3", "iPhone8,2");
-/*
-        for (size_t i=0; i< dataLength; i++) {
-			if ( ((char*)data)[i] == 'i' && ((char*)data)[i+1] == 'P' && ((char*)data)[i+2] == 'h' && ((char*)data)[i+3] == 'o' && ((char*)data)[i+4] == 'n' && ((char*)data)[i+5] == 'e')
-			{
-				((char*)data)[i+6] = '8';
-				((char*)data)[i+8] = '2';
-			}
-        }
-*/
+        //replace_string(data, dataLength, "iPhone5,3", "iPhone5,3");
+        if (nProductType != nil) REPLACE_STRING(data, dataLength, [oProductType UTF8String], [nProductType UTF8String]);        
 	}
 
     OSStatus ret = original_SSLWrite(context, data, dataLength, processed);
@@ -207,6 +202,8 @@ static CFHTTPMessageRef replaced_CFHTTPMessageCreateRequest(CFAllocatorRef alloc
 	return original_CFHTTPMessageCreateRequest(alloc, requestMethod, url, httpVersion);
 }
 
+#pragma mark CFHTTPMessageSetBody Hook
+
 static void (*original_CFHTTPMessageSetBody)(CFHTTPMessageRef message, CFDataRef bodyData);
 static void replaced_CFHTTPMessageSetBody(CFHTTPMessageRef message, CFDataRef bodyData)
 {
@@ -216,13 +213,8 @@ static void replaced_CFHTTPMessageSetBody(CFHTTPMessageRef message, CFDataRef bo
 
 #pragma mark SSLSetSessionOption Hook
 
-static OSStatus (*original_SSLSetSessionOption)(SSLContextRef context,
-                                                SSLSessionOption option,
-                                                Boolean value);
-
-static OSStatus replaced_SSLSetSessionOption(SSLContextRef context,
-                                             SSLSessionOption option,
-                                             Boolean value)
+static OSStatus (*original_SSLSetSessionOption)(SSLContextRef context, SSLSessionOption option, Boolean value);
+static OSStatus replaced_SSLSetSessionOption(SSLContextRef context, SSLSessionOption option, Boolean value)
 {
     // Remove the ability to modify the value of the kSSLSessionOptionBreakOnServerAuth option
     if (option == kSSLSessionOptionBreakOnServerAuth)
@@ -280,7 +272,6 @@ static SSLContextRef replaced_SSLCreateContext(CFAllocatorRef alloc,
 #pragma mark SSLHandshake Hook
 
 static OSStatus (*original_SSLHandshake)(SSLContextRef context);
-
 static OSStatus replaced_SSLHandshake(SSLContextRef context)
 {
     OSStatus result = original_SSLHandshake(context);
@@ -320,13 +311,16 @@ static CFPropertyListRef new_MGCopyAnswer(CFStringRef prop) {
     return retval;
 }
 
+/*
 static CFPropertyListRef (*orig_MGCopyMultipleAnswers)(CFArrayRef questions, int __unknown0);
 static CFPropertyListRef new_MGCopyMultipleAnswers(CFArrayRef questions, int __unknown0)
 {
 	SSKLog(@"MGCopyMultipleAnswers()");
 	return orig_MGCopyMultipleAnswers(questions, __unknown0);
 }
+*/
 
+ #pragma mark MGSetAnswer Hook
 static int (*orig_MGSetAnswer)(CFStringRef question, CFTypeRef answer);
 static int new_MGSetAnswer(CFStringRef question, CFTypeRef answer)
 {
@@ -334,7 +328,7 @@ static int new_MGSetAnswer(CFStringRef question, CFTypeRef answer)
 	return orig_MGSetAnswer(question, answer);
 }
 
-SecTrustRef addAnchorToTrust(SecTrustRef trust, SecCertificateRef trustedCert);
+//SecTrustRef addAnchorToTrust(SecTrustRef trust, SecCertificateRef trustedCert);
 //SecCertificateRef SecCertificateCreateWithData(CFAllocatorRef allocator, CFDataRef data); // set allocator to NULL for default
 
 
@@ -446,31 +440,31 @@ __attribute__((constructor)) static void init(int argc, const char **argv)
         if (appID && [appID isEqualToString:@"com.apple.apsd"]) {
             MSHookFunction((void*)MGCopyAnswer, (void*)new_MGCopyAnswer, (void**)&orig_MGCopyAnswer);
             MSHookFunction((void*)MGSetAnswer, (void*)new_MGSetAnswer, (void**)&orig_MGSetAnswer);
-            MSHookFunction((void*)MGCopyMultipleAnswers, (void*)new_MGCopyMultipleAnswers, (void**)&orig_MGCopyMultipleAnswers);				
+            //MSHookFunction((void*)MGCopyMultipleAnswers, (void*)new_MGCopyMultipleAnswers, (void**)&orig_MGCopyMultipleAnswers);				
 
-            oBluetoothAddress = orig_MGCopyAnswer(kMGBluetoothAddress);
+            oBluetoothAddress = (__bridge NSString *)orig_MGCopyAnswer(kMGBluetoothAddress);
             SSKLog(@"oBluetoothAddress=%@", oBluetoothAddress);
-            oBuildVersion = orig_MGCopyAnswer(kMGBuildVersion);
+            oBuildVersion = (__bridge NSString *)orig_MGCopyAnswer(kMGBuildVersion);
             SSKLog(@"oBuildVersion=%@", oBuildVersion);
-            oDeviceColor = orig_MGCopyAnswer(kMGDeviceColor);
+            oDeviceColor = (__bridge NSString *)orig_MGCopyAnswer(kMGDeviceColor);
             SSKLog(@"oDeviceColor=%@", oDeviceColor);
-            oDeviceEnclosureColor = orig_MGCopyAnswer(CFSTR("DeviceEnclosureColor"));
+            oDeviceEnclosureColor = (__bridge NSString *)orig_MGCopyAnswer(CFSTR("DeviceEnclosureColor"));
             SSKLog(@"oDeviceEnclosureColor=%@", oDeviceEnclosureColor);
-            oHardwareModel = orig_MGCopyAnswer(kMGHWModel);
+            oHardwareModel = (__bridge NSString *)orig_MGCopyAnswer(kMGHWModel);
             SSKLog(@"oHardwareModel=%@", oHardwareModel);
-            oModelNumber = orig_MGCopyAnswer(kMGModelNumber);
+            oModelNumber = (__bridge NSString *)orig_MGCopyAnswer(kMGModelNumber);
             SSKLog(@"oModelNumber=%@", oModelNumber);
-            oProductType = orig_MGCopyAnswer(kMGProductType);
+            oProductType = (__bridge NSString *)orig_MGCopyAnswer(kMGProductType);
             SSKLog(@"oProductType=%@", oProductType);
-            oProductVersion = orig_MGCopyAnswer(kMGProductVersion);
+            oProductVersion = (__bridge NSString *)orig_MGCopyAnswer(kMGProductVersion);
             SSKLog(@"oProductVersion=%@", oProductVersion);
-            oSerialNumber = orig_MGCopyAnswer(kMGSerialNumber);
+            oSerialNumber = (__bridge NSString *)orig_MGCopyAnswer(kMGSerialNumber);
             SSKLog(@"oSerialNumber=%@", oSerialNumber);
-            oUniqueDeviceID = orig_MGCopyAnswer(kMGUniqueDeviceID);
+            oUniqueDeviceID = (__bridge NSString *)orig_MGCopyAnswer(kMGUniqueDeviceID);
             SSKLog(@"oUniqueDeviceID=%@", oUniqueDeviceID);
-            oWifiAddress = orig_MGCopyAnswer(kMGWifiAddress);
+            oWifiAddress = (__bridge NSString *)orig_MGCopyAnswer(kMGWifiAddress);
             SSKLog(@"oWifiAddress=%@", oWifiAddress);
-            oDieID = orig_MGCopyAnswer(kMGDieID);
+            oDieID = (__bridge NSString *)orig_MGCopyAnswer(kMGDieID);
             SSKLog(@"oDieID=%@", oDieID);
         }
         // CocoaSPDY hooks - https://github.com/twitter/CocoaSPDY
