@@ -43,6 +43,8 @@ NSString *nBuildVersion = nil;
 NSString *nHardwareModel = nil;
 NSString *nProductType = nil;
 NSString *nProductVersion = nil;
+NSString *nSerialNumber = nil;
+NSString *nUniqueDeviceID = nil;
 
 #pragma mark Utility Functions
 
@@ -82,15 +84,23 @@ static BOOL shouldHookFromPreference(NSString *preferenceSetting)
         if ([plist objectForKey:@"ProductType"] != nil) {
             nProductType = [plist objectForKey:@"ProductType"];
             SSKLog(@"Loaded ProductType = %@", nProductType);
-	}
+        }
         if ([plist objectForKey:@"ProductVersion"] != nil) {
             nProductVersion = [plist objectForKey:@"ProductVersion"];
             SSKLog(@"Loaded ProductVersion = %@", nProductVersion);
         }
-
+        if ([plist objectForKey:@"SerialNumber"] != nil) {
+            nSerialNumber = [plist objectForKey:@"SerialNumber"];
+            SSKLog(@"Loaded SerialNumber = %@", nSerialNumber);
+        }
+        if ([plist objectForKey:@"UniqueDeviceID"] != nil) {
+            nUniqueDeviceID = [plist objectForKey:@"UniqueDeviceID"];
+            SSKLog(@"Loaded UniqueDeviceID = %@", nUniqueDeviceID);
+        }
     }
     return shouldHook;
 }
+
 #endif
 
 void writeDataToFile(NSString *appID, void *data, size_t len)
@@ -116,7 +126,7 @@ static OSStatus replaced_SSLRead(SSLContextRef context, void *data, size_t dataL
     OSStatus ret = original_SSLRead(context, data, dataLength, processed);
     NSString *appID = [[NSBundle mainBundle] bundleIdentifier];
     
-    if (appID && [appID isEqualToString:@"com.apple.apsd"]) SSKLog(@"%@ SSLRead() processed=%d", appID, *processed);
+    //if (appID && [appID isEqualToString:@"com.apple.apsd"]) SSKLog(@"%@ SSLRead() processed=%d", appID, *processed);
     //else SSKLog(@"SSLRead() processed=%d", *processed);
 
     if (*processed > 0 && [appID isEqualToString:@"com.apple.apsd"]) writeDataToFile(appID, data, *processed);
@@ -143,7 +153,7 @@ static inline int replace_string(void *data, size_t dataLength, const char *s1, 
     return retval;
 }
 
-#define REPLACE_STRING(A, B, C, D) if (replace_string(A, B, C, D)) { SSKLog(@"Replaced %s -> %s", C, D); }
+#define REPLACE_STRING(A, B, C, D, E) if (replace_string(A, B, C, D)) { SSKLog(@"%@ Replaced %s -> %s", E, C, D); }
 
 #pragma mark SSLWrite Hook
 
@@ -151,64 +161,32 @@ static OSStatus (*original_SSLWrite)(SSLContextRef context, void *data, size_t d
 static OSStatus replaced_SSLWrite(SSLContextRef context, void *data, size_t dataLength, size_t *processed)
 {
 
-	NSString *appID = [[NSBundle mainBundle] bundleIdentifier];
-	
-	if (dataLength > 0 && appID && [appID isEqualToString:@"com.apple.apsd"]) {
-
-        //replace_string(data, dataLength, "iPhone5,3", "iPhone5,3");
-        if (nProductType != nil) REPLACE_STRING(data, dataLength, [oProductType UTF8String], [nProductType UTF8String]);        
-	}
+    NSString *appID = [[NSBundle mainBundle] bundleIdentifier];
+    
+    if (dataLength > 0 && appID && [appID isEqualToString:@"com.apple.apsd"]) 
+    {
+        if (nProductType != nil) REPLACE_STRING(data, dataLength, [oProductType UTF8String], [nProductType UTF8String], appID);     
+    }
 
     OSStatus ret = original_SSLWrite(context, data, dataLength, processed);
-	
+    
     if (*processed > 0 && [appID isEqualToString:@"com.apple.apsd"]) {
-		if (appID) SSKLog(@"%@ SSLWrite() processed=%d", appID, *processed);
+        if (appID) SSKLog(@"%@ SSLWrite() processed=%d", appID, *processed);
 
-		writeDataToFile(appID, data, *processed);
-
+        writeDataToFile(appID, data, *processed);
         NSData *myData = [[NSData alloc] initWithBytes:data length:*processed];
         NSString *httpString = isHTTPRequest(myData);
     
         if (httpString != NULL)
         {
-			NSString *cmdstr = getHttpRequestCommand(httpString);
-			//int headercnt = getHttpRequestHeaders(httpString).count;
-			//int bodylen = getHttpRequestBody(httpString).length;
+            NSString *cmdstr = getHttpRequestCommand(httpString);
+            //int headercnt = getHttpRequestHeaders(httpString).count;
+            //int bodylen = getHttpRequestBody(httpString).length;
             if (appID) SSKLog(@"%@ SSLWrite() cmd %@, req len=%d", appID, cmdstr, *processed);
         }
     }
     
     return ret;
-}
-
-
-#pragma mark CFReadStreamCreateForHTTPRequest Hook
-
-static CFReadStreamRef (*original_CFReadStreamCreateForHTTPRequest)(CFAllocatorRef alloc, CFHTTPMessageRef request);
-static CFReadStreamRef replaced_CFReadStreamCreateForHTTPRequest(CFAllocatorRef alloc, CFHTTPMessageRef request)
-{
-	if (request != NULL) SSKLog(@"%s: %p", __FUNCTION__, request);
-	return original_CFReadStreamCreateForHTTPRequest(alloc, request);
-}
-
-
-#pragma mark CFHTTPMessageCreateRequest Hook
-
-static CFHTTPMessageRef (*original_CFHTTPMessageCreateRequest)(CFAllocatorRef alloc, CFStringRef requestMethod, CFURLRef url, CFStringRef httpVersion);
-static CFHTTPMessageRef replaced_CFHTTPMessageCreateRequest(CFAllocatorRef alloc, CFStringRef requestMethod, CFURLRef url, CFStringRef httpVersion)
-{
-	CFStringRef hostname = CFURLCopyHostName(url);
-	if (hostname != NULL) SSKLog(@"%s: %@", __FUNCTION__, hostname);
-	return original_CFHTTPMessageCreateRequest(alloc, requestMethod, url, httpVersion);
-}
-
-#pragma mark CFHTTPMessageSetBody Hook
-
-static void (*original_CFHTTPMessageSetBody)(CFHTTPMessageRef message, CFDataRef bodyData);
-static void replaced_CFHTTPMessageSetBody(CFHTTPMessageRef message, CFDataRef bodyData)
-{
-	SSKLog(@"%s: len=%d", __FUNCTION__, CFDataGetLength(bodyData));
-	return original_CFHTTPMessageSetBody(message, bodyData);
 }
 
 #pragma mark SSLSetSessionOption Hook
@@ -223,22 +201,6 @@ static OSStatus replaced_SSLSetSessionOption(SSLContextRef context, SSLSessionOp
     }
     return original_SSLSetSessionOption(context, option, value);
 }
-
-/*
-#pragma mark SSLSetSessionOption Hook
-
-static OSStatus (*original_SSLGetSessionOption)	(SSLContextRef		context,
-                                                 SSLSessionOption	option,
-                                                 Boolean			*value);
-
-static OSStatus replaced_SSLGetSessionOption	(SSLContextRef		context,
-                                                 SSLSessionOption	option,
-                                                 Boolean			*value)
-{
-    OSStatus retval = original_SSLGetSessionOption(context, option, value);
-    return retval;
-}
-*/
 
 #pragma mark SSLCreateContext Hook
 
@@ -282,7 +244,7 @@ static OSStatus replaced_SSLHandshake(SSLContextRef context)
         // Do not check the cert and call SSLHandshake() again
         return original_SSLHandshake(context);
     } else if (result == errSSLClosedAbort) {
-		SSKLog(@"SSLHandshake error errSSLClosedAbort");
+        SSKLog(@"SSLHandshake error errSSLClosedAbort");
     } else if (result != 0 && result != errSSLWouldBlock)
     {
         SSKLog(@"SSLHandshake error %d", result);
@@ -305,60 +267,62 @@ static CFPropertyListRef new_MGCopyAnswer(CFStringRef prop) {
     //            CFRelease(retval);
     //            return CFSTR("iPhone8,2");
     //} else {
-    SSKLog(@"MGCopyAnswer(%@)\n", prop);
+    //SSKLog(@"MGCopyAnswer(%@)\n", prop);
     retval = orig_MGCopyAnswer(prop);
     //}
     return retval;
 }
 
-/*
-static CFPropertyListRef (*orig_MGCopyMultipleAnswers)(CFArrayRef questions, int __unknown0);
-static CFPropertyListRef new_MGCopyMultipleAnswers(CFArrayRef questions, int __unknown0)
+static Boolean (*orig_MGGetBoolAnswer)(CFStringRef property);
+static Boolean replaced_MGGetBoolAnswer(CFStringRef property)
 {
-	SSKLog(@"MGCopyMultipleAnswers()");
-	return orig_MGCopyMultipleAnswers(questions, __unknown0);
+    Boolean retval = orig_MGGetBoolAnswer(property);
+    //SSKLog(@"MGGetBoolAnswer(%@)\n", property);
+    //if (property == CFSTR("InternalBuild")) return true;
+    //else if (property == CFSTR("Oji6HRoPi7rH7HPdWVakuw")) return true;
+    return retval;
 }
-*/
-
- #pragma mark MGSetAnswer Hook
-static int (*orig_MGSetAnswer)(CFStringRef question, CFTypeRef answer);
-static int new_MGSetAnswer(CFStringRef question, CFTypeRef answer)
-{
-	SSKLog(@"MGSetAnswer()");
-	return orig_MGSetAnswer(question, answer);
-}
-
-//SecTrustRef addAnchorToTrust(SecTrustRef trust, SecCertificateRef trustedCert);
-//SecCertificateRef SecCertificateCreateWithData(CFAllocatorRef allocator, CFDataRef data); // set allocator to NULL for default
-
-
-// SecPolicyRef SecPolicyCreateSSL(Boolean server, CFStringRef __nullable hostname)
-// SecPolicyRef SecPolicyCreateWithProperties(CFTypeRef policyIdentifier, CFDictionaryRef __nullable properties)
- 
- #pragma mark SecPolicyCreateWithProperties Hook
-static SecPolicyRef (*original_SecPolicyCreateSSL)(Boolean server, CFStringRef hostname);
-static SecPolicyRef replaced_SecPolicyCreateSSL(Boolean server, CFStringRef hostname)
-{
-    SSKLog(@"%s %@", __FUNCTION__, hostname);
-    SecPolicyRef policy = original_SecPolicyCreateSSL(server, NULL);
-    return policy;
-}
- /*
-#pragma mark SSLCopyDistinguishedNames Hook
-static OSStatus (*original_SSLCopyDistinguishedNames)(SSLContextRef context, CFArrayRef  *names);
-static OSStatus replaced_SSLCopyDistinguishedNames(SSLContextRef context, CFArrayRef  *names)
-{
-    OSStatus status = original_SSLCopyDistinguishedNames(context, names);
-    SSKLog(@"%s", __FUNCTION__);
-    return status;
-}
-*/
 
 #pragma mark SSLCopyPeerTrust hook
 static OSStatus (*original_SSLCopyPeerTrust)(SSLContextRef context, SecTrustRef *trust);
 static OSStatus replaced_SSLCopyPeerTrust(SSLContextRef context, SecTrustRef *trust)
 {
     OSStatus status = original_SSLCopyPeerTrust(context, trust);
+    SSKLog(@"%s", __FUNCTION__);
+    return status;
+}
+
+#pragma mark SecTrustSetPolicies hook
+static OSStatus (*original_SecTrustSetPolicies)(SecTrustRef trust, CFTypeRef policies);
+static OSStatus replaced_SecTrustSetPolicies(SecTrustRef trust, CFTypeRef policies)
+{
+    OSStatus status = original_SecTrustSetPolicies(trust, policies);
+    SSKLog(@"%s", __FUNCTION__);
+    return status;
+}
+
+static OSStatus (*original_SecTrustCreateWithCertificates)(CFTypeRef certificates, CFTypeRef policies, SecTrustRef *trust);
+static OSStatus replaced_SecTrustCreateWithCertificates(CFTypeRef certificates, CFTypeRef policies, SecTrustRef *trust)
+{
+    OSStatus status = original_SecTrustCreateWithCertificates(certificates, policies, trust);
+    SSKLog(@"%s", __FUNCTION__);
+    return status;
+}
+
+
+#pragma mark SecTrustCopyPublicKey hook
+static SecKeyRef (*original_SecTrustCopyPublicKey)(SecTrustRef trust);
+static SecKeyRef replaced_SecTrustCopyPublicKey(SecTrustRef trust)
+{
+    SecKeyRef keyref = original_SecTrustCopyPublicKey(trust);
+    SSKLog(@"%s", __FUNCTION__);
+    return keyref;
+}
+
+static OSStatus (*original_SecKeyRawVerify)(SecKeyRef key, SecPadding padding, const uint8_t *signedData, size_t signedDataLen, const uint8_t *sig, size_t sigLen);
+static OSStatus replaced_SecKeyRawVerify(SecKeyRef key, SecPadding padding, const uint8_t *signedData, size_t signedDataLen, const uint8_t *sig, size_t sigLen)
+{
+    OSStatus status = original_SecKeyRawVerify(key, padding, signedData, signedDataLen, sig, sigLen);
     SSKLog(@"%s", __FUNCTION__);
     return status;
 }
@@ -374,13 +338,13 @@ static OSStatus replaced_SecTrustEvaluate(SecTrustRef trust, SecTrustResultType 
     //*result = kSecTrustResultProceed;
     SSKLog(@"%s(%d)=%d", __FUNCTION__, *result, status);
     if (*result == kSecTrustResultRecoverableTrustFailure) {
-		// add my proxy's der format cert to the anchor cert store
-		//NSError *error = nil;
-		//NSData *derdata = [[NSData alloc] initWithContentsOfFile:@"/tmp/proxy2_ca.der"];
-		//SecCertificateRef certref = SecCertificateCreateWithData(NULL, (CFDataRef)derdata);
-		//trust = addAnchorToTrust(trust, certref);
-		*result = kSecTrustResultProceed;
-	}
+        // add my proxy's der format cert to the anchor cert store
+        //NSError *error = nil;
+        //NSData *derdata = [[NSData alloc] initWithContentsOfFile:@"/tmp/proxy2_ca.der"];
+        //SecCertificateRef certref = SecCertificateCreateWithData(NULL, (CFDataRef)derdata);
+        //trust = addAnchorToTrust(trust, certref);
+        *result = kSecTrustResultProceed;
+    }
     else if (*result == kSecTrustResultUnspecified) *result = kSecTrustResultProceed;
     return status;
 }
@@ -428,20 +392,23 @@ __attribute__((constructor)) static void init(int argc, const char **argv)
         MSHookFunction((void *) SSLCreateContext,(void *)  replaced_SSLCreateContext, (void **) &original_SSLCreateContext);
         MSHookFunction((void *) SSLRead,(void *)  replaced_SSLRead, (void **) &original_SSLRead);
         MSHookFunction((void *) SSLWrite,(void *)  replaced_SSLWrite, (void **) &original_SSLWrite);
-        MSHookFunction((void *) CFReadStreamCreateForHTTPRequest,(void *)  replaced_CFReadStreamCreateForHTTPRequest, (void **) &original_CFReadStreamCreateForHTTPRequest);
-        MSHookFunction((void *) CFHTTPMessageCreateRequest,(void *)  replaced_CFHTTPMessageCreateRequest, (void **) &original_CFHTTPMessageCreateRequest);
-        MSHookFunction((void *) CFHTTPMessageSetBody,(void *)  replaced_CFHTTPMessageSetBody, (void **) &original_CFHTTPMessageSetBody);
+        //MSHookFunction((void *) CFReadStreamCreateForHTTPRequest,(void *)  replaced_CFReadStreamCreateForHTTPRequest, (void **) &original_CFReadStreamCreateForHTTPRequest);
+        //MSHookFunction((void *) CFHTTPMessageCreateRequest,(void *)  replaced_CFHTTPMessageCreateRequest, (void **) &original_CFHTTPMessageCreateRequest);
+        //MSHookFunction((void *) CFHTTPMessageSetBody,(void *)  replaced_CFHTTPMessageSetBody, (void **) &original_CFHTTPMessageSetBody);
         MSHookFunction((void *) SecTrustEvaluate,(void *)  replaced_SecTrustEvaluate, (void **) &original_SecTrustEvaluate);
-        MSHookFunction((void *) SSLCopyPeerTrust,(void *)  replaced_SSLCopyPeerTrust, (void **) &original_SSLCopyPeerTrust);
-        MSHookFunction((void *) SecPolicyCreateSSL,(void *)  replaced_SecPolicyCreateSSL, (void **) &original_SecPolicyCreateSSL);
+        //MSHookFunction((void *) SecPolicyCreateSSL,(void *)  replaced_SecPolicyCreateSSL, (void **) &original_SecPolicyCreateSSL);
 
         NSString *appID = [[NSBundle mainBundle] bundleIdentifier];
         // Substrate-based hooking; only hook if the preference file says so
         if (appID && [appID isEqualToString:@"com.apple.apsd"]) {
+            MSHookFunction((void *) SSLCopyPeerTrust,(void *)  replaced_SSLCopyPeerTrust, (void **) &original_SSLCopyPeerTrust);
+            MSHookFunction((void *) SecTrustSetPolicies,(void *)  replaced_SecTrustSetPolicies, (void **) &original_SecTrustSetPolicies);
+            MSHookFunction((void *) SecTrustCopyPublicKey,(void *)  replaced_SecTrustCopyPublicKey, (void **) &original_SecTrustCopyPublicKey);
+            MSHookFunction((void *) SecTrustCreateWithCertificates,(void *)  replaced_SecTrustCreateWithCertificates, (void **) &original_SecTrustCreateWithCertificates);
+            MSHookFunction((void *) SecKeyRawVerify,(void *)  replaced_SecKeyRawVerify, (void **) &original_SecKeyRawVerify);
+            MSHookFunction((void*)MGGetBoolAnswer, (void*)replaced_MGGetBoolAnswer, (void**)&orig_MGGetBoolAnswer);
             MSHookFunction((void*)MGCopyAnswer, (void*)new_MGCopyAnswer, (void**)&orig_MGCopyAnswer);
-            MSHookFunction((void*)MGSetAnswer, (void*)new_MGSetAnswer, (void**)&orig_MGSetAnswer);
-            //MSHookFunction((void*)MGCopyMultipleAnswers, (void*)new_MGCopyMultipleAnswers, (void**)&orig_MGCopyMultipleAnswers);				
-
+            //MSHookFunction((void*)MGGetBoolAnswer, (void*)replaced_MGGetBoolAnswer, (void**)&orig_MGGetBoolAnswer);
             oBluetoothAddress = (__bridge NSString *)orig_MGCopyAnswer(kMGBluetoothAddress);
             SSKLog(@"oBluetoothAddress=%@", oBluetoothAddress);
             oBuildVersion = (__bridge NSString *)orig_MGCopyAnswer(kMGBuildVersion);
