@@ -170,7 +170,7 @@ static OSStatus replaced_SSLWrite(SSLContextRef context, void *data, size_t data
 
     OSStatus ret = original_SSLWrite(context, data, dataLength, processed);
     
-    if (*processed > 0 && [appID isEqualToString:@"com.apple.apsd"]) {
+    if (*processed > 0 /*&& [appID isEqualToString:@"com.apple.apsd"]*/) {
         if (appID) SSKLog(@"%@ SSLWrite() processed=%d", appID, *processed);
 
         writeDataToFile(appID, data, *processed);
