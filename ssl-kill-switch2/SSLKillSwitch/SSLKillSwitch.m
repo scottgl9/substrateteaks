@@ -12,7 +12,9 @@
 #import <Security/Security.h>
 #import <Security/SecPolicy.h>
 #import <UIKit/UIKit.h>
+#include <CommonCrypto/CommonDigest.h>
 #import "MobileGestalt.h"
+
 
 #if SUBSTRATE_BUILD
 #import "substrate.h"
@@ -103,9 +105,9 @@ static BOOL shouldHookFromPreference(NSString *preferenceSetting)
 
 #endif
 
-void writeDataToFile(NSString *appID, void *data, size_t len)
+void writeDataToFile(NSString *appID, const void *data, size_t len)
 {
-    NSString *filename = [NSString stringWithFormat:@"/var/tmp/%@.log", appID];
+    NSString *filename = [NSString stringWithFormat:@"/var/tmp/%@.bin", appID];
     NSData *myData = [[NSData alloc] initWithBytes:data length:len];
     NSFileHandle *fileHandle = [NSFileHandle fileHandleForWritingAtPath:filename];
     if (fileHandle) {
@@ -118,6 +120,7 @@ void writeDataToFile(NSString *appID, void *data, size_t len)
     }
 }
 
+/*
 #pragma mark SSLRead Hook
 
 static OSStatus (*original_SSLRead)(SSLContextRef context, void *data, size_t dataLength, size_t *processed);
@@ -152,9 +155,10 @@ static inline int replace_string(void *data, size_t dataLength, const char *s1, 
     }
     return retval;
 }
+*/
 
 #define REPLACE_STRING(A, B, C, D, E) if (replace_string(A, B, C, D)) { SSKLog(@"%@ Replaced %s -> %s", E, C, D); }
-
+/*
 #pragma mark SSLWrite Hook
 
 static OSStatus (*original_SSLWrite)(SSLContextRef context, void *data, size_t dataLength, size_t *processed);
@@ -170,7 +174,7 @@ static OSStatus replaced_SSLWrite(SSLContextRef context, void *data, size_t data
 
     OSStatus ret = original_SSLWrite(context, data, dataLength, processed);
     
-    if (*processed > 0 /*&& [appID isEqualToString:@"com.apple.apsd"]*/) {
+    if (*processed > 0 && [appID isEqualToString:@"com.apple.apsd"]) {
         if (appID) SSKLog(@"%@ SSLWrite() processed=%d", appID, *processed);
 
         writeDataToFile(appID, data, *processed);
@@ -187,6 +191,43 @@ static OSStatus replaced_SSLWrite(SSLContextRef context, void *data, size_t data
     }
     
     return ret;
+}
+*/
+
+#pragma mark CC_SHA1 Hook
+
+static unsigned char* (*original_CC_SHA1)(const void *data, CC_LONG len, unsigned char *md);
+static unsigned char *replaced_CC_SHA1(const void *data, CC_LONG len, unsigned char *md) {
+    NSString *appID = [[NSBundle mainBundle] bundleIdentifier];
+    writeDataToFile(appID, data, len);
+    return original_CC_SHA1(data, len, md);
+}
+
+#pragma mark CC_SHA1_Update Hook
+
+static int (*original_CC_SHA1_Update)(CC_SHA1_CTX *c, const void *data, CC_LONG len);
+static int replaced_CC_SHA1_Update(CC_SHA1_CTX *c, const void *data, CC_LONG len) {
+    NSString *appID = [[NSBundle mainBundle] bundleIdentifier];
+    writeDataToFile(appID, data, len);
+    return original_CC_SHA1_Update(c, data, len);
+}
+
+#pragma mark CC_SHA256_Update Hook
+
+static int (*original_CC_SHA256_Update)(CC_SHA256_CTX *c, const void *data, CC_LONG len);
+static int replaced_CC_SHA256_Update(CC_SHA256_CTX *c, const void *data, CC_LONG len) {
+    NSString *appID = [[NSBundle mainBundle] bundleIdentifier];
+    writeDataToFile(appID, data, len);
+    return original_CC_SHA256_Update(c, data, len);
+}
+
+#pragma mark CC_SHA256 Hook
+
+static unsigned char* (*original_CC_SHA256)(const void *data, CC_LONG len, unsigned char *md);
+static unsigned char *replaced_CC_SHA256(const void *data, CC_LONG len, unsigned char *md) {
+    NSString *appID = [[NSBundle mainBundle] bundleIdentifier];
+    writeDataToFile(appID, data, len);
+    return original_CC_SHA256(data, len, md);
 }
 
 #pragma mark SSLSetSessionOption Hook
@@ -253,7 +294,7 @@ static OSStatus replaced_SSLHandshake(SSLContextRef context)
     return result;
 }
 
-
+/*
 #pragma mark MGCopyAnswer Hook
 
 static CFPropertyListRef (*orig_MGCopyAnswer)(CFStringRef prop);
@@ -326,7 +367,7 @@ static OSStatus replaced_SecKeyRawVerify(SecKeyRef key, SecPadding padding, cons
     SSKLog(@"%s", __FUNCTION__);
     return status;
 }
-
+*/
 
 #pragma mark SecTrustEvaluate Hook
 static OSStatus (*original_SecTrustEvaluate)(SecTrustRef trust, SecTrustResultType *result);
@@ -390,16 +431,21 @@ __attribute__((constructor)) static void init(int argc, const char **argv)
         MSHookFunction((void *) SSLHandshake,(void *)  replaced_SSLHandshake, (void **) &original_SSLHandshake);
         MSHookFunction((void *) SSLSetSessionOption,(void *)  replaced_SSLSetSessionOption, (void **) &original_SSLSetSessionOption);
         MSHookFunction((void *) SSLCreateContext,(void *)  replaced_SSLCreateContext, (void **) &original_SSLCreateContext);
-        MSHookFunction((void *) SSLRead,(void *)  replaced_SSLRead, (void **) &original_SSLRead);
-        MSHookFunction((void *) SSLWrite,(void *)  replaced_SSLWrite, (void **) &original_SSLWrite);
+        //MSHookFunction((void *) SSLRead,(void *)  replaced_SSLRead, (void **) &original_SSLRead);
+        //MSHookFunction((void *) SSLWrite,(void *)  replaced_SSLWrite, (void **) &original_SSLWrite);
         //MSHookFunction((void *) CFReadStreamCreateForHTTPRequest,(void *)  replaced_CFReadStreamCreateForHTTPRequest, (void **) &original_CFReadStreamCreateForHTTPRequest);
         //MSHookFunction((void *) CFHTTPMessageCreateRequest,(void *)  replaced_CFHTTPMessageCreateRequest, (void **) &original_CFHTTPMessageCreateRequest);
         //MSHookFunction((void *) CFHTTPMessageSetBody,(void *)  replaced_CFHTTPMessageSetBody, (void **) &original_CFHTTPMessageSetBody);
         MSHookFunction((void *) SecTrustEvaluate,(void *)  replaced_SecTrustEvaluate, (void **) &original_SecTrustEvaluate);
         //MSHookFunction((void *) SecPolicyCreateSSL,(void *)  replaced_SecPolicyCreateSSL, (void **) &original_SecPolicyCreateSSL);
+        MSHookFunction((void *) CC_SHA1,(void *)  replaced_CC_SHA1, (void **) &original_CC_SHA1);
+	MSHookFunction((void *) CC_SHA1_Update,(void *)  replaced_CC_SHA1_Update, (void **) &original_CC_SHA1_Update);
+	MSHookFunction((void *) CC_SHA256,(void *)  replaced_CC_SHA256, (void **) &original_CC_SHA256);
+	MSHookFunction((void *) CC_SHA256_Update,(void *)  replaced_CC_SHA256_Update, (void **) &original_CC_SHA256_Update);
 
-        NSString *appID = [[NSBundle mainBundle] bundleIdentifier];
+        //NSString *appID = [[NSBundle mainBundle] bundleIdentifier];
         // Substrate-based hooking; only hook if the preference file says so
+/*
         if (appID && [appID isEqualToString:@"com.apple.apsd"]) {
             MSHookFunction((void *) SSLCopyPeerTrust,(void *)  replaced_SSLCopyPeerTrust, (void **) &original_SSLCopyPeerTrust);
             MSHookFunction((void *) SecTrustSetPolicies,(void *)  replaced_SecTrustSetPolicies, (void **) &original_SecTrustSetPolicies);
@@ -434,6 +480,7 @@ __attribute__((constructor)) static void init(int argc, const char **argv)
             oDieID = (__bridge NSString *)orig_MGCopyAnswer(kMGDieID);
             SSKLog(@"oDieID=%@", oDieID);
         }
+*/
         // CocoaSPDY hooks - https://github.com/twitter/CocoaSPDY
         // TODO: Enable these hooks for the fishhook-based hooking so it works on OS X too
         Class spdyProtocolClass = NSClassFromString(@"SPDYProtocol");
