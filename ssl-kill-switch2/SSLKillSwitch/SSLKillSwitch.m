@@ -120,6 +120,34 @@ void writeDataToFile(NSString *appID, const void *data, size_t len)
     }
 }
 
+void writeAsHexToFile(NSString *appID, unsigned char *data, size_t len)
+{
+    NSString *filename = [NSString stringWithFormat:@"/var/tmp/%@.bin", appID];
+    NSData *myData = [[NSData alloc] initWithBytes:data length:len];
+    NSFileHandle *fileHandle = [NSFileHandle fileHandleForWritingAtPath:filename];
+
+    NSUInteger          dataLength  = (NSUInteger)len;
+    NSMutableString     *hexString  = [NSMutableString stringWithCapacity:(dataLength * 2)];
+
+    for (size_t i = 0; i < len; ++i)
+    {
+        [hexString appendFormat:@"%02x", (unsigned int)data[i]];
+    }
+
+    [hexString appendString:@"\n"];
+
+    NSString *str = [NSString stringWithString:hexString];
+
+    if (fileHandle) {
+        [fileHandle seekToEndOfFile];
+        [fileHandle writeData:[str dataUsingEncoding:NSUTF8StringEncoding]];
+        [fileHandle closeFile];
+    } else {
+        NSError *error = nil;
+        [myData writeToFile:filename options:NSDataWritingAtomic error:&error];
+    }
+}
+
 /*
 #pragma mark SSLRead Hook
 
@@ -233,7 +261,8 @@ static int (*original_CC_SHA1_Final)(unsigned char *md, CC_SHA1_CTX *c);
 static int replaced_CC_SHA1_Final(unsigned char *md, CC_SHA1_CTX *c) {
     int retval = original_CC_SHA1_Final(md, c);
     NSString *appID = [[NSBundle mainBundle] bundleIdentifier];
-    writeDataToFile(appID, md, 20);
+    //writeDataToFile(appID, md, 20);
+    writeAsHexToFile(appID, md, 20);
     return retval;
 }
 
@@ -243,7 +272,8 @@ static int (*original_CC_SHA256_Final)(unsigned char *md, CC_SHA1_CTX *c);
 static int replaced_CC_SHA256_Final(unsigned char *md, CC_SHA1_CTX *c) {
     int retval = original_CC_SHA256_Final(md, c);
     NSString *appID = [[NSBundle mainBundle] bundleIdentifier];
-    writeDataToFile(appID, md, 32);
+    //writeDataToFile(appID, md, 32);
+    writeAsHexToFile(appID, md, 32);
     return retval;
 }
 
