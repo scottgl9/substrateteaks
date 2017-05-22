@@ -15,7 +15,7 @@ include $(THEOS_MAKE_PATH)/tweak.mk
 include $(THEOS_MAKE_PATH)/aggregate.mk
 
 IPHONEADDR=192.168.12.249
-#IPHONEADDR=10.79.0.7
+#IPHONEADDR=10.79.0.3
 
 doclean:
 	rm -f packages/com.nablac0d3.SSLKillSwitch2_0.10-*+debug_iphoneos-arm.deb

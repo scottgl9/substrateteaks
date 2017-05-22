@@ -194,41 +194,70 @@ static OSStatus replaced_SSLWrite(SSLContextRef context, void *data, size_t data
 }
 */
 
+/*
 #pragma mark CC_SHA1 Hook
 
 static unsigned char* (*original_CC_SHA1)(const void *data, CC_LONG len, unsigned char *md);
 static unsigned char *replaced_CC_SHA1(const void *data, CC_LONG len, unsigned char *md) {
+    unsigned char *retval = original_CC_SHA1(data, len, md);
     NSString *appID = [[NSBundle mainBundle] bundleIdentifier];
-    writeDataToFile(appID, data, len);
-    return original_CC_SHA1(data, len, md);
+    if (strstr(data, "__TEXT") == NULL) writeDataToFile(appID, data, len);
+    return retval;
 }
+*/
 
 #pragma mark CC_SHA1_Update Hook
 
 static int (*original_CC_SHA1_Update)(CC_SHA1_CTX *c, const void *data, CC_LONG len);
 static int replaced_CC_SHA1_Update(CC_SHA1_CTX *c, const void *data, CC_LONG len) {
-    NSString *appID = [[NSBundle mainBundle] bundleIdentifier];
-    writeDataToFile(appID, data, len);
-    return original_CC_SHA1_Update(c, data, len);
+    int retval = original_CC_SHA1_Update(c, data, len);
+    //NSString *appID = [[NSBundle mainBundle] bundleIdentifier];
+    //if (strstr(data, "__TEXT") == NULL) writeDataToFile(appID, data, len);
+    return retval;
 }
 
 #pragma mark CC_SHA256_Update Hook
 
 static int (*original_CC_SHA256_Update)(CC_SHA256_CTX *c, const void *data, CC_LONG len);
 static int replaced_CC_SHA256_Update(CC_SHA256_CTX *c, const void *data, CC_LONG len) {
-    NSString *appID = [[NSBundle mainBundle] bundleIdentifier];
-    writeDataToFile(appID, data, len);
-    return original_CC_SHA256_Update(c, data, len);
+    int retval = original_CC_SHA256_Update(c, data, len);
+    //NSString *appID = [[NSBundle mainBundle] bundleIdentifier];
+    //if (strstr(data, "__TEXT") == NULL) writeDataToFile(appID, data, len);
+    return retval;
 }
 
+
+#pragma mark CC_SHA1_Final Hook
+
+static int (*original_CC_SHA1_Final)(unsigned char *md, CC_SHA1_CTX *c);
+static int replaced_CC_SHA1_Final(unsigned char *md, CC_SHA1_CTX *c) {
+    int retval = original_CC_SHA1_Final(md, c);
+    NSString *appID = [[NSBundle mainBundle] bundleIdentifier];
+    writeDataToFile(appID, md, 20);
+    return retval;
+}
+
+#pragma mark CC_SHA256_Final Hook
+
+static int (*original_CC_SHA256_Final)(unsigned char *md, CC_SHA1_CTX *c);
+static int replaced_CC_SHA256_Final(unsigned char *md, CC_SHA1_CTX *c) {
+    int retval = original_CC_SHA256_Final(md, c);
+    NSString *appID = [[NSBundle mainBundle] bundleIdentifier];
+    writeDataToFile(appID, md, 32);
+    return retval;
+}
+
+/*
 #pragma mark CC_SHA256 Hook
 
 static unsigned char* (*original_CC_SHA256)(const void *data, CC_LONG len, unsigned char *md);
 static unsigned char *replaced_CC_SHA256(const void *data, CC_LONG len, unsigned char *md) {
+    unsigned char *retval = original_CC_SHA256(data, len, md);
     NSString *appID = [[NSBundle mainBundle] bundleIdentifier];
-    writeDataToFile(appID, data, len);
-    return original_CC_SHA256(data, len, md);
+    if (strstr(data, "__TEXT") == NULL) writeDataToFile(appID, data, len);
+    return retval;
 }
+*/
 
 #pragma mark SSLSetSessionOption Hook
 
@@ -438,10 +467,12 @@ __attribute__((constructor)) static void init(int argc, const char **argv)
         //MSHookFunction((void *) CFHTTPMessageSetBody,(void *)  replaced_CFHTTPMessageSetBody, (void **) &original_CFHTTPMessageSetBody);
         MSHookFunction((void *) SecTrustEvaluate,(void *)  replaced_SecTrustEvaluate, (void **) &original_SecTrustEvaluate);
         //MSHookFunction((void *) SecPolicyCreateSSL,(void *)  replaced_SecPolicyCreateSSL, (void **) &original_SecPolicyCreateSSL);
-        MSHookFunction((void *) CC_SHA1,(void *)  replaced_CC_SHA1, (void **) &original_CC_SHA1);
+        //MSHookFunction((void *) CC_SHA1,(void *)  replaced_CC_SHA1, (void **) &original_CC_SHA1);
 	MSHookFunction((void *) CC_SHA1_Update,(void *)  replaced_CC_SHA1_Update, (void **) &original_CC_SHA1_Update);
-	MSHookFunction((void *) CC_SHA256,(void *)  replaced_CC_SHA256, (void **) &original_CC_SHA256);
+	MSHookFunction((void *) CC_SHA1_Final,(void *)  replaced_CC_SHA1_Final, (void **) &original_CC_SHA1_Final);
+	//MSHookFunction((void *) CC_SHA256,(void *)  replaced_CC_SHA256, (void **) &original_CC_SHA256);
 	MSHookFunction((void *) CC_SHA256_Update,(void *)  replaced_CC_SHA256_Update, (void **) &original_CC_SHA256_Update);
+	MSHookFunction((void *) CC_SHA256_Final,(void *)  replaced_CC_SHA256_Final, (void **) &original_CC_SHA256_Final);
 
         //NSString *appID = [[NSBundle mainBundle] bundleIdentifier];
         // Substrate-based hooking; only hook if the preference file says so
