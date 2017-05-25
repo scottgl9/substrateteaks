@@ -186,7 +186,7 @@ static inline int replace_string(void *data, size_t dataLength, const char *s1, 
 */
 
 #define REPLACE_STRING(A, B, C, D, E) if (replace_string(A, B, C, D)) { SSKLog(@"%@ Replaced %s -> %s", E, C, D); }
-/*
+
 #pragma mark SSLWrite Hook
 
 static OSStatus (*original_SSLWrite)(SSLContextRef context, void *data, size_t dataLength, size_t *processed);
@@ -194,18 +194,19 @@ static OSStatus replaced_SSLWrite(SSLContextRef context, void *data, size_t data
 {
 
     NSString *appID = [[NSBundle mainBundle] bundleIdentifier];
-    
+/*    
     if (dataLength > 0 && appID && [appID isEqualToString:@"com.apple.apsd"]) 
     {
         if (nProductType != nil) REPLACE_STRING(data, dataLength, [oProductType UTF8String], [nProductType UTF8String], appID);     
     }
-
+*/
     OSStatus ret = original_SSLWrite(context, data, dataLength, processed);
     
     if (*processed > 0 && [appID isEqualToString:@"com.apple.apsd"]) {
         if (appID) SSKLog(@"%@ SSLWrite() processed=%d", appID, *processed);
 
         writeDataToFile(appID, data, *processed);
+/*
         NSData *myData = [[NSData alloc] initWithBytes:data length:*processed];
         NSString *httpString = isHTTPRequest(myData);
     
@@ -216,11 +217,11 @@ static OSStatus replaced_SSLWrite(SSLContextRef context, void *data, size_t data
             //int bodylen = getHttpRequestBody(httpString).length;
             if (appID) SSKLog(@"%@ SSLWrite() cmd %@, req len=%d", appID, cmdstr, *processed);
         }
+*/
     }
     
     return ret;
 }
-*/
 
 /*
 #pragma mark CC_SHA1 Hook
@@ -254,7 +255,7 @@ static int replaced_CC_SHA256_Update(CC_SHA256_CTX *c, const void *data, CC_LONG
     return retval;
 }
 
-
+/*
 #pragma mark CC_SHA1_Final Hook
 
 static int (*original_CC_SHA1_Final)(unsigned char *md, CC_SHA1_CTX *c);
@@ -276,7 +277,7 @@ static int replaced_CC_SHA256_Final(unsigned char *md, CC_SHA1_CTX *c) {
     writeAsHexToFile(appID, md, 32);
     return retval;
 }
-
+*/
 /*
 #pragma mark CC_SHA256 Hook
 
@@ -452,7 +453,6 @@ static OSStatus replaced_SecTrustEvaluate(SecTrustRef trust, SecTrustResultType 
 #pragma mark CocoaSPDY hook
 
 static void (*oldSetTLSTrustEvaluator)(id self, SEL _cmd, id evaluator);
-
 static void newSetTLSTrustEvaluator(id self, SEL _cmd, id evaluator)
 {
     // Set a nil evaluator to disable SSL validation
@@ -460,7 +460,6 @@ static void newSetTLSTrustEvaluator(id self, SEL _cmd, id evaluator)
 }
 
 static void (*oldSetprotocolClasses)(id self, SEL _cmd, NSArray <Class> *protocolClasses);
-
 static void newSetprotocolClasses(id self, SEL _cmd, NSArray <Class> *protocolClasses)
 {
     // Do not register protocol classes which is how CocoaSPDY works
@@ -468,7 +467,6 @@ static void newSetprotocolClasses(id self, SEL _cmd, NSArray <Class> *protocolCl
 }
 
 static void (*oldRegisterOrigin)(id self, SEL _cmd, NSString *origin);
-
 static void newRegisterOrigin(id self, SEL _cmd, NSString *origin)
 {
     // Do not register protocol classes which is how CocoaSPDY works
@@ -485,6 +483,7 @@ __attribute__((constructor)) static void init(int argc, const char **argv)
     {
         // Substrate-based hooking; only hook if the preference file says so
         //SSKLog(@"Subtrate hook enabled.");
+	NSString *appID = [[NSBundle mainBundle] bundleIdentifier];
 
         // SecureTransport hooks
         MSHookFunction((void *) SSLHandshake,(void *)  replaced_SSLHandshake, (void **) &original_SSLHandshake);
@@ -499,15 +498,16 @@ __attribute__((constructor)) static void init(int argc, const char **argv)
         //MSHookFunction((void *) SecPolicyCreateSSL,(void *)  replaced_SecPolicyCreateSSL, (void **) &original_SecPolicyCreateSSL);
         //MSHookFunction((void *) CC_SHA1,(void *)  replaced_CC_SHA1, (void **) &original_CC_SHA1);
 	MSHookFunction((void *) CC_SHA1_Update,(void *)  replaced_CC_SHA1_Update, (void **) &original_CC_SHA1_Update);
-	MSHookFunction((void *) CC_SHA1_Final,(void *)  replaced_CC_SHA1_Final, (void **) &original_CC_SHA1_Final);
+	//MSHookFunction((void *) CC_SHA1_Final,(void *)  replaced_CC_SHA1_Final, (void **) &original_CC_SHA1_Final);
 	//MSHookFunction((void *) CC_SHA256,(void *)  replaced_CC_SHA256, (void **) &original_CC_SHA256);
 	MSHookFunction((void *) CC_SHA256_Update,(void *)  replaced_CC_SHA256_Update, (void **) &original_CC_SHA256_Update);
-	MSHookFunction((void *) CC_SHA256_Final,(void *)  replaced_CC_SHA256_Final, (void **) &original_CC_SHA256_Final);
+	//MSHookFunction((void *) CC_SHA256_Final,(void *)  replaced_CC_SHA256_Final, (void **) &original_CC_SHA256_Final);
 
         //NSString *appID = [[NSBundle mainBundle] bundleIdentifier];
         // Substrate-based hooking; only hook if the preference file says so
-/*
         if (appID && [appID isEqualToString:@"com.apple.apsd"]) {
+		MSHookFunction((void *) SSLWrite,(void *)  replaced_SSLWrite, (void **) &original_SSLWrite);
+/*
             MSHookFunction((void *) SSLCopyPeerTrust,(void *)  replaced_SSLCopyPeerTrust, (void **) &original_SSLCopyPeerTrust);
             MSHookFunction((void *) SecTrustSetPolicies,(void *)  replaced_SecTrustSetPolicies, (void **) &original_SecTrustSetPolicies);
             MSHookFunction((void *) SecTrustCopyPublicKey,(void *)  replaced_SecTrustCopyPublicKey, (void **) &original_SecTrustCopyPublicKey);
@@ -540,8 +540,8 @@ __attribute__((constructor)) static void init(int argc, const char **argv)
             SSKLog(@"oWifiAddress=%@", oWifiAddress);
             oDieID = (__bridge NSString *)orig_MGCopyAnswer(kMGDieID);
             SSKLog(@"oDieID=%@", oDieID);
-        }
 */
+        }
         // CocoaSPDY hooks - https://github.com/twitter/CocoaSPDY
         // TODO: Enable these hooks for the fishhook-based hooking so it works on OS X too
         Class spdyProtocolClass = NSClassFromString(@"SPDYProtocol");
