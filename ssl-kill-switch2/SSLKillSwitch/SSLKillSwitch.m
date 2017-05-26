@@ -12,9 +12,93 @@
 #import <Security/Security.h>
 #import <Security/SecPolicy.h>
 #import <UIKit/UIKit.h>
-#include <CommonCrypto/CommonDigest.h>
+#import <CommonCrypto/CommonDigest.h>
+#import <CommonCrypto/CommonHMAC.h>
 #import "MobileGestalt.h"
 
+#if !defined(CCN_UNIT_SIZE)
+#if defined(__x86_64__)
+#define CCN_UNIT_SIZE  8
+#elif defined(__arm__) || defined(__i386__)
+#define CCN_UNIT_SIZE  4
+#else
+#define CCN_UNIT_SIZE  2
+#endif
+#endif /* !defined(CCN_UNIT_SIZE) */
+
+#if  CCN_UNIT_SIZE == 8
+typedef uint64_t cc_unit;          // 64 bit unit
+//typedef uint128_t cc_dunit;         // 128 bit double width unit
+#define CCN_LOG2_BITS_PER_UNIT  6  // 2^6 = 64 bits
+#define CC_UNIT_C(x) UINT64_C(x)
+#elif  CCN_UNIT_SIZE == 4
+typedef uint32_t cc_unit;          // 32 bit unit
+typedef uint64_t cc_dunit;         // 64 bit double width unit
+#define CCN_LOG2_BITS_PER_UNIT  5  // 2^5 = 32 bits
+#define CC_UNIT_C(x) UINT32_C(x)
+#elif CCN_UNIT_SIZE == 2
+typedef uint16_t cc_unit;          // 16 bit unit
+typedef uint32_t cc_dunit;         // 32 bit double width unit
+#define CCN_LOG2_BITS_PER_UNIT  4  // 2^4 = 16 bits
+#define CC_UNIT_C(x) UINT16_C(x)
+#elif CCN_UNIT_SIZE == 1
+typedef uint8_t cc_unit;           // 8 bit unit
+typedef uint16_t cc_dunit;         // 16 bit double width unit
+#define CCN_LOG2_BITS_PER_UNIT  3  // 2^3 = 8 bits
+#define CC_UNIT_C(x) UINT8_C(x)
+#else
+#error invalid CCN_UNIT_SIZE
+#endif
+
+struct ccdigest_ctx {
+    union {
+        uint8_t u8;
+        uint32_t u32;
+        uint64_t u64;
+        cc_unit ccn;
+    } state;
+} __attribute((aligned(8)));
+
+typedef union {
+    struct ccdigest_ctx *hdr;
+} ccdigest_ctx_t __attribute__((transparent_union));
+
+struct ccdigest_state {
+    union {
+        uint8_t u8;
+        uint32_t u32;
+        uint64_t u64;
+        cc_unit ccn;
+    } state;
+} __attribute((aligned(8)));
+
+typedef union {
+    struct ccdigest_state *hdr;
+    struct ccdigest_ctx *_ctx;
+    ccdigest_ctx_t _ctxt;
+} ccdigest_state_t __attribute__((transparent_union));
+
+struct ccdigest_info {
+    unsigned long output_size;
+    unsigned long state_size;
+    unsigned long block_size;
+    unsigned long oid_size;
+    unsigned char *oid;
+    const void *initial_state;
+    void(*compress)(ccdigest_state_t state, unsigned long nblocks,
+                    const void *data);
+    void(*final)(const struct ccdigest_info *di, ccdigest_ctx_t ctx,
+                 unsigned char *digest);
+};
+
+struct cchmac_ctx {
+    uint8_t b[8];
+} __attribute__((aligned(8)));
+
+typedef union {
+    struct cchmac_ctx *hdr;
+    ccdigest_ctx_t digest;
+} cchmac_ctx_t __attribute__((transparent_union));
 
 #if SUBSTRATE_BUILD
 #import "substrate.h"
@@ -120,9 +204,9 @@ void writeDataToFile(NSString *appID, const void *data, size_t len)
     }
 }
 
-void writeAsHexToFile(NSString *appID, unsigned char *data, size_t len)
+void writeAsHexToFile(NSString *appID, NSString *name, unsigned char *data, size_t len)
 {
-    NSString *filename = [NSString stringWithFormat:@"/var/tmp/%@.bin", appID];
+    NSString *filename = [NSString stringWithFormat:@"/var/tmp/%@_%@.bin", appID, name];
     NSData *myData = [[NSData alloc] initWithBytes:data length:len];
     NSFileHandle *fileHandle = [NSFileHandle fileHandleForWritingAtPath:filename];
 
@@ -193,7 +277,7 @@ static OSStatus (*original_SSLWrite)(SSLContextRef context, void *data, size_t d
 static OSStatus replaced_SSLWrite(SSLContextRef context, void *data, size_t dataLength, size_t *processed)
 {
 
-    NSString *appID = [[NSBundle mainBundle] bundleIdentifier];
+    //NSString *appID = [[NSBundle mainBundle] bundleIdentifier];
 /*    
     if (dataLength > 0 && appID && [appID isEqualToString:@"com.apple.apsd"]) 
     {
@@ -201,12 +285,12 @@ static OSStatus replaced_SSLWrite(SSLContextRef context, void *data, size_t data
     }
 */
     OSStatus ret = original_SSLWrite(context, data, dataLength, processed);
-    
+/*    
     if (*processed > 0 && [appID isEqualToString:@"com.apple.apsd"]) {
         if (appID) SSKLog(@"%@ SSLWrite() processed=%d", appID, *processed);
 
         writeDataToFile(appID, data, *processed);
-/*
+
         NSData *myData = [[NSData alloc] initWithBytes:data length:*processed];
         NSString *httpString = isHTTPRequest(myData);
     
@@ -217,10 +301,31 @@ static OSStatus replaced_SSLWrite(SSLContextRef context, void *data, size_t data
             //int bodylen = getHttpRequestBody(httpString).length;
             if (appID) SSKLog(@"%@ SSLWrite() cmd %@, req len=%d", appID, cmdstr, *processed);
         }
-*/
     }
-    
+*/    
     return ret;
+}
+
+#pragma mark cchmac_init
+
+extern void cchmac_init(const struct ccdigest_info *di, cchmac_ctx_t hc, unsigned long key_len, const void *key_data);
+
+static void (*original_cchmac_init)(const struct ccdigest_info *di, cchmac_ctx_t hc, unsigned long key_len, const void *key_data);
+static void replaced_cchmac_init(const struct ccdigest_info *di, cchmac_ctx_t hc, unsigned long key_len, const void *key_data) {
+	NSString *appID = [[NSBundle mainBundle] bundleIdentifier];
+	writeAsHexToFile(appID, @"init", (unsigned char *)key_data, key_len);
+	return original_cchmac_init(di, hc, key_len, key_data);
+}
+
+#pragma mark cchmac_update
+
+extern void cchmac_update(const struct ccdigest_info *di, cchmac_ctx_t hc, size_t data_len, const void *data);
+
+static void (*original_cchmac_update)(const struct ccdigest_info *di, cchmac_ctx_t hc, size_t data_len, const void *data);
+static void replaced_cchmac_update(const struct ccdigest_info *di, cchmac_ctx_t hc, size_t data_len, const void *data) {
+	NSString *appID = [[NSBundle mainBundle] bundleIdentifier];
+	writeDataToFile(appID, data, data_len);
+	return original_cchmac_update(di, hc, data_len, data);
 }
 
 /*
@@ -233,7 +338,6 @@ static unsigned char *replaced_CC_SHA1(const void *data, CC_LONG len, unsigned c
     if (strstr(data, "__TEXT") == NULL) writeDataToFile(appID, data, len);
     return retval;
 }
-*/
 
 #pragma mark CC_SHA1_Update Hook
 
@@ -255,7 +359,6 @@ static int replaced_CC_SHA256_Update(CC_SHA256_CTX *c, const void *data, CC_LONG
     return retval;
 }
 
-/*
 #pragma mark CC_SHA1_Final Hook
 
 static int (*original_CC_SHA1_Final)(unsigned char *md, CC_SHA1_CTX *c);
@@ -496,11 +599,13 @@ __attribute__((constructor)) static void init(int argc, const char **argv)
         //MSHookFunction((void *) CFHTTPMessageSetBody,(void *)  replaced_CFHTTPMessageSetBody, (void **) &original_CFHTTPMessageSetBody);
         MSHookFunction((void *) SecTrustEvaluate,(void *)  replaced_SecTrustEvaluate, (void **) &original_SecTrustEvaluate);
         //MSHookFunction((void *) SecPolicyCreateSSL,(void *)  replaced_SecPolicyCreateSSL, (void **) &original_SecPolicyCreateSSL);
+	MSHookFunction((void *) cchmac_init,(void *)  replaced_cchmac_init, (void **) &original_cchmac_init);
+	MSHookFunction((void *) cchmac_update,(void *)  replaced_cchmac_update, (void **) &original_cchmac_update);
         //MSHookFunction((void *) CC_SHA1,(void *)  replaced_CC_SHA1, (void **) &original_CC_SHA1);
-	MSHookFunction((void *) CC_SHA1_Update,(void *)  replaced_CC_SHA1_Update, (void **) &original_CC_SHA1_Update);
+	//MSHookFunction((void *) CC_SHA1_Update,(void *)  replaced_CC_SHA1_Update, (void **) &original_CC_SHA1_Update);
 	//MSHookFunction((void *) CC_SHA1_Final,(void *)  replaced_CC_SHA1_Final, (void **) &original_CC_SHA1_Final);
 	//MSHookFunction((void *) CC_SHA256,(void *)  replaced_CC_SHA256, (void **) &original_CC_SHA256);
-	MSHookFunction((void *) CC_SHA256_Update,(void *)  replaced_CC_SHA256_Update, (void **) &original_CC_SHA256_Update);
+	//MSHookFunction((void *) CC_SHA256_Update,(void *)  replaced_CC_SHA256_Update, (void **) &original_CC_SHA256_Update);
 	//MSHookFunction((void *) CC_SHA256_Final,(void *)  replaced_CC_SHA256_Final, (void **) &original_CC_SHA256_Final);
 
         //NSString *appID = [[NSBundle mainBundle] bundleIdentifier];
