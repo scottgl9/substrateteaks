@@ -1,0 +1,11 @@
+MGCopyAnswerBuildVersionMGCopyAnswerProductTypeMGCopyAnswerShouldHactivateMGCopyAnswerDeviceClassMGCopyAnswerHasBasebandMGCopyAnswerSerialNumberMGCopyAnswerUniqueDeviceIDMGCopyAnswerunique-chip-idC38K4AG6DTTN3170157339530c8:6f:1d:0a:52:3cc8:6f:1d:0a:52:3d{
+	"InternationalMobileEquipmentIdentity" = "013423005288880";
+	"CertificateURL" = "https://albert.apple.com/deviceservices/certifyMe";
+	"PhoneNumberNotificationURL" = "https://albert.apple.com/deviceservices/phoneHome";
+	"SerialNumber" = "C38K4AG6DTTN";
+	"ProductType" = "iPhone5,1";
+	"UniqueDeviceID" = "3fbace309f3896cb8607d7e1e31d6d9945536b61";
+	"WildcardTicket" = "MIIB1gIBATALBgkqhkiG9w0BAQUxgaCfPwQLmewWn0AE4RBvAJ9LFHCisQVF4fYeyJguiRbx3dSHmWuAn4dtBwE0IwBSiIiflz1UAAAAADEAMO7u7u7vAAAAADEBUO7u7u7vAAAAADEBcO7u7u7vAAAAADECgO7u7u7vAAAAADEEEO7u7u7vAAAAADEFYO7u7u7vAAAAADERgO7u7u7vn5c+BAAAAACflz8EAQAAAJ+XQAQBAAAABIGApwZXpKDoouGpiuHpq05fQI5L3xOv7j0JO8dqu676/hIA92g7q3Cm1F4G3ZtFdJdd9spZdLz8ySLXKOzqtm27siRHMTYOUsJOTL+kDb6K3cz3CBHNu2B9GL2ObgWDL0wmIsCoDu7GtoL0/89UdEzGTlNwgPpPUGaXEr+Yc1XqUwijgZ0wCwYJKoZIhvcNAQEBA4GNADCBiQKBgQDtOj9k0eggnMFSBjTvfi+yCX4ALEND5/iq6+ZKs8C2AMQ1JnBpWsdekX5xEoEAGqQNrTRhwQ3HZ21LW24csoM2fXMxktplGmIr1R6Iw81kvqaWDXYFYvBWOUU4YQPxTql9fA7DoP8UINGC/IYGfvCzDywRrsB2ViYwcaaS/CA4/QIDAQAB\n";
+	"ActivationRandomness" = "58C149B0-5EFA-4FEE-9615-FFF2CC542147";
+	"ActivityURL" = "https://albert.apple.com/deviceservices/activity";
+}/var/mobile/Library/Cookies/com.apple.mobileactivationd.binarycookies
