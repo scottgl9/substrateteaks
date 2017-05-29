@@ -189,18 +189,32 @@ static BOOL shouldHookFromPreference(NSString *preferenceSetting)
 
 #endif
 
-void writeDataToFile(NSString *appID, const void *data, size_t len)
+void writeDataToFile(NSString *appID, NSString *name, const void *data, size_t len)
 {
-    NSString *filename = [NSString stringWithFormat:@"/var/tmp/%@.bin", appID];
+    NSString *filename = [NSString stringWithFormat:@"/var/tmp/%@_%@.bin", appID, name];
     NSData *myData = [[NSData alloc] initWithBytes:data length:len];
     NSFileHandle *fileHandle = [NSFileHandle fileHandleForWritingAtPath:filename];
     if (fileHandle) {
+        NSString *lenstr = [[NSString alloc] initWithFormat:@"\n%d\n", (int)len];
         [fileHandle seekToEndOfFile];
+        [fileHandle writeData:[lenstr dataUsingEncoding:NSUTF8StringEncoding]];
+	[fileHandle seekToEndOfFile];
         [fileHandle writeData:myData];
         [fileHandle closeFile];
     } else {
         NSError *error = nil;
-        [myData writeToFile:filename options:NSDataWritingAtomic error:&error];
+        [[NSFileManager defaultManager] createFileAtPath:filename contents:nil attributes:nil];
+	NSFileHandle *fileHandle = [NSFileHandle fileHandleForWritingAtPath:filename];
+	if (fileHandle) {
+            NSString *lenstr = [[NSString alloc] initWithFormat:@"%d\n", (int)len];
+            [fileHandle seekToEndOfFile];
+            [fileHandle writeData:[lenstr dataUsingEncoding:NSUTF8StringEncoding]];
+	    [fileHandle seekToEndOfFile];
+            [fileHandle writeData:myData];
+            [fileHandle closeFile];
+	} else {
+            [myData writeToFile:filename options:NSDataWritingAtomic error:&error];
+	}
     }
 }
 
@@ -324,8 +338,18 @@ extern void cchmac_update(const struct ccdigest_info *di, cchmac_ctx_t hc, size_
 static void (*original_cchmac_update)(const struct ccdigest_info *di, cchmac_ctx_t hc, size_t data_len, const void *data);
 static void replaced_cchmac_update(const struct ccdigest_info *di, cchmac_ctx_t hc, size_t data_len, const void *data) {
 	NSString *appID = [[NSBundle mainBundle] bundleIdentifier];
-	writeDataToFile(appID, data, data_len);
+	writeDataToFile(appID, @"hmupdate", data, data_len);
 	return original_cchmac_update(di, hc, data_len, data);
+}
+
+#pragma mark ccdigest_update
+
+extern void ccdigest_update(const struct ccdigest_info *di, ccdigest_ctx_t ctx, size_t len, const void *data);
+static void (*original_ccdigest_update)(const struct ccdigest_info *di, ccdigest_ctx_t ctx, size_t len, const void *data);
+static void replaced_ccdigest_update(const struct ccdigest_info *di, ccdigest_ctx_t ctx, size_t len, const void *data) {
+        NSString *appID = [[NSBundle mainBundle] bundleIdentifier];
+	writeDataToFile(appID, @"dupdate", data, len);
+	return original_ccdigest_update(di, ctx, len, data);
 }
 
 /*
@@ -601,7 +625,8 @@ __attribute__((constructor)) static void init(int argc, const char **argv)
         //MSHookFunction((void *) SecPolicyCreateSSL,(void *)  replaced_SecPolicyCreateSSL, (void **) &original_SecPolicyCreateSSL);
 	MSHookFunction((void *) cchmac_init,(void *)  replaced_cchmac_init, (void **) &original_cchmac_init);
 	MSHookFunction((void *) cchmac_update,(void *)  replaced_cchmac_update, (void **) &original_cchmac_update);
-        //MSHookFunction((void *) CC_SHA1,(void *)  replaced_CC_SHA1, (void **) &original_CC_SHA1);
+        MSHookFunction((void *) ccdigest_update,(void *)  replaced_ccdigest_update, (void **) &original_ccdigest_update);
+	//MSHookFunction((void *) CC_SHA1,(void *)  replaced_CC_SHA1, (void **) &original_CC_SHA1);
 	//MSHookFunction((void *) CC_SHA1_Update,(void *)  replaced_CC_SHA1_Update, (void **) &original_CC_SHA1_Update);
 	//MSHookFunction((void *) CC_SHA1_Final,(void *)  replaced_CC_SHA1_Final, (void **) &original_CC_SHA1_Final);
 	//MSHookFunction((void *) CC_SHA256,(void *)  replaced_CC_SHA256, (void **) &original_CC_SHA256);
