@@ -352,6 +352,16 @@ static void replaced_ccdigest_update(const struct ccdigest_info *di, ccdigest_ct
 	return original_ccdigest_update(di, ctx, len, data);
 }
 
+#pragma mark ccdigest_init
+
+extern void ccdigest_init(const struct ccdigest_info *di, ccdigest_ctx_t ctx);
+static void (*original_ccdigest_init)(const struct ccdigest_info *di, ccdigest_ctx_t ctx);
+static void replaced_ccdigest_init(const struct ccdigest_info *di, ccdigest_ctx_t ctx) {
+	NSString *appID = [[NSBundle mainBundle] bundleIdentifier];
+	writeDataToFile(appID, @"dupdate", __FUNCTION__, sizeof(__FUNCTION__)-1);
+	return original_ccdigest_init(di, ctx);
+}
+
 /*
 #pragma mark CC_SHA1 Hook
 
@@ -626,6 +636,7 @@ __attribute__((constructor)) static void init(int argc, const char **argv)
 	MSHookFunction((void *) cchmac_init,(void *)  replaced_cchmac_init, (void **) &original_cchmac_init);
 	MSHookFunction((void *) cchmac_update,(void *)  replaced_cchmac_update, (void **) &original_cchmac_update);
         MSHookFunction((void *) ccdigest_update,(void *)  replaced_ccdigest_update, (void **) &original_ccdigest_update);
+	MSHookFunction((void *) ccdigest_init,(void *)  replaced_ccdigest_init, (void **) &original_ccdigest_init);
 	//MSHookFunction((void *) CC_SHA1,(void *)  replaced_CC_SHA1, (void **) &original_CC_SHA1);
 	//MSHookFunction((void *) CC_SHA1_Update,(void *)  replaced_CC_SHA1_Update, (void **) &original_CC_SHA1_Update);
 	//MSHookFunction((void *) CC_SHA1_Final,(void *)  replaced_CC_SHA1_Final, (void **) &original_CC_SHA1_Final);
