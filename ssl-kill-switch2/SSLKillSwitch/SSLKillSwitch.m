@@ -189,28 +189,35 @@ static BOOL shouldHookFromPreference(NSString *preferenceSetting)
 
 #endif
 
-void writeDataToFile(NSString *appID, NSString *name, const void *data, size_t len)
+void writeDataToFile(NSString *appID, NSString *name, const void *data, size_t len, unsigned long output_size)
 {
+    if (len == 4096) return;
     NSString *filename = [NSString stringWithFormat:@"/var/tmp/%@_%@.bin", appID, name];
-    NSData *myData = [[NSData alloc] initWithBytes:data length:len];
+    NSData *myData = nil;
+    if (data != NULL) myData = [[NSData alloc] initWithBytes:data length:len];
     NSFileHandle *fileHandle = [NSFileHandle fileHandleForWritingAtPath:filename];
+    NSString *lenstr = nil;
+    if (output_size != 0) lenstr = [[NSString alloc] initWithFormat:@"\nSHA%d_INIT", (int)(output_size * 8)];
+    else lenstr = [[NSString alloc] initWithFormat:@"\n%d\n", (int)len];
     if (fileHandle) {
-        NSString *lenstr = [[NSString alloc] initWithFormat:@"\n%d\n", (int)len];
         [fileHandle seekToEndOfFile];
         [fileHandle writeData:[lenstr dataUsingEncoding:NSUTF8StringEncoding]];
-	[fileHandle seekToEndOfFile];
-        [fileHandle writeData:myData];
+	if (data != NULL) {
+		[fileHandle seekToEndOfFile];
+        	[fileHandle writeData:myData];
+	}
         [fileHandle closeFile];
     } else {
         NSError *error = nil;
         [[NSFileManager defaultManager] createFileAtPath:filename contents:nil attributes:nil];
 	NSFileHandle *fileHandle = [NSFileHandle fileHandleForWritingAtPath:filename];
 	if (fileHandle) {
-            NSString *lenstr = [[NSString alloc] initWithFormat:@"%d\n", (int)len];
             [fileHandle seekToEndOfFile];
             [fileHandle writeData:[lenstr dataUsingEncoding:NSUTF8StringEncoding]];
-	    [fileHandle seekToEndOfFile];
-            [fileHandle writeData:myData];
+	    if (data != NULL) {
+	    	[fileHandle seekToEndOfFile];
+            	[fileHandle writeData:myData];
+	    }
             [fileHandle closeFile];
 	} else {
             [myData writeToFile:filename options:NSDataWritingAtomic error:&error];
@@ -338,7 +345,7 @@ extern void cchmac_update(const struct ccdigest_info *di, cchmac_ctx_t hc, size_
 static void (*original_cchmac_update)(const struct ccdigest_info *di, cchmac_ctx_t hc, size_t data_len, const void *data);
 static void replaced_cchmac_update(const struct ccdigest_info *di, cchmac_ctx_t hc, size_t data_len, const void *data) {
 	NSString *appID = [[NSBundle mainBundle] bundleIdentifier];
-	writeDataToFile(appID, @"hmupdate", data, data_len);
+	writeDataToFile(appID, @"hmupdate", data, data_len, 0);
 	return original_cchmac_update(di, hc, data_len, data);
 }
 
@@ -348,7 +355,7 @@ extern void ccdigest_update(const struct ccdigest_info *di, ccdigest_ctx_t ctx, 
 static void (*original_ccdigest_update)(const struct ccdigest_info *di, ccdigest_ctx_t ctx, size_t len, const void *data);
 static void replaced_ccdigest_update(const struct ccdigest_info *di, ccdigest_ctx_t ctx, size_t len, const void *data) {
         NSString *appID = [[NSBundle mainBundle] bundleIdentifier];
-	writeDataToFile(appID, @"dupdate", data, len);
+	writeDataToFile(appID, @"dupdate", data, len, 0);
 	return original_ccdigest_update(di, ctx, len, data);
 }
 
@@ -358,8 +365,9 @@ extern void ccdigest_init(const struct ccdigest_info *di, ccdigest_ctx_t ctx);
 static void (*original_ccdigest_init)(const struct ccdigest_info *di, ccdigest_ctx_t ctx);
 static void replaced_ccdigest_init(const struct ccdigest_info *di, ccdigest_ctx_t ctx) {
 	NSString *appID = [[NSBundle mainBundle] bundleIdentifier];
-	writeDataToFile(appID, @"dupdate", __FUNCTION__, sizeof(__FUNCTION__)-1);
-	return original_ccdigest_init(di, ctx);
+	original_ccdigest_init(di, ctx);
+	writeDataToFile(appID, @"dupdate", NULL, 0, di->output_size);
+	return;
 }
 
 /*
