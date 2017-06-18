@@ -14,7 +14,21 @@
 #import <UIKit/UIKit.h>
 #import <CommonCrypto/CommonDigest.h>
 #import <CommonCrypto/CommonHMAC.h>
+//#import <IOKit/hid/IOHIDBase.h>
+typedef struct __IOHIDDevice * IOHIDDeviceRef;
+
+/*! @typedef IOHIDElementRef
+ * 	This is the type of a reference to the IOHIDElement.
+ * 	*/
+typedef struct __IOHIDElement * IOHIDElementRef;
+
+/*! @typedef IOHIDValueRef
+ * 	This is the type of a reference to the IOHIDValue.
+ * 	*/
+typedef struct __IOHIDValue * IOHIDValueRef;
+
 #import "MobileGestalt.h"
+#import "liblockdown.h"
 
 #if !defined(CCN_UNIT_SIZE)
 #if defined(__x86_64__)
@@ -112,7 +126,8 @@ typedef union {
 #define PREFERENCE_FILE @"/private/var/mobile/Library/Preferences/com.nablac0d3.SSLKillSwitchSettings.plist"
 #define PREFERENCE_KEY @"shouldDisableCertificateValidation"
 
-NSString *oBluetoothAddress = nil;
+// Jun 18 05:19:38 iPhone lockdownd[6712] <Warning>: === SSL Kill Switch 2: MGCopyAnswer(UniqueDeviceIDData)=<3fbace30 9f3896cb 8607d7e1 e31d6d99 45536b61> 
+
 NSString *oBuildVersion = nil;
 NSString *oDeviceColor = nil;
 NSString *oDeviceEnclosureColor = nil;
@@ -124,13 +139,44 @@ NSString *oSerialNumber = nil;
 NSString *oUniqueDeviceID = nil;
 NSString *oWifiAddress = nil;
 NSString *oDieID = nil;
+NSString *oHWModelStr = nil;
+NSString *oHardwarePlatform = nil;
+NSString *oBluetoothAddress = nil;
+NSString *oEthernetMacAddress = nil;
+NSString *oUniqueChipID = nil;
+NSString *oDieId = nil;
+NSString *oMLBSerialNumber = nil;
+NSString *oFirmwareVersion = nil;
+NSString *oCPUArchitecture = nil;
+NSString *oWirelessBoardSnum = nil;
+NSString *oBasebandCertId = nil;
+NSString *oBasebandFirmwareVersion = nil;
+
 
 NSString *nBuildVersion = nil;
+NSString *nDeviceColor = nil;
+NSString *nDeviceEnclosureColor = nil;
 NSString *nHardwareModel = nil;
+NSString *nModelNumber = nil;
 NSString *nProductType = nil;
 NSString *nProductVersion = nil;
 NSString *nSerialNumber = nil;
 NSString *nUniqueDeviceID = nil;
+NSString *nWifiAddress = nil;
+NSString *nHWModelStr = nil;
+NSString *nHardwarePlatform = nil;
+NSString *nBluetoothAddress = nil;
+NSString *nEthernetMacAddress = nil;
+NSString *nUniqueChipID = nil;
+NSString *nDieId = nil;
+NSString *nMLBSerialNumber = nil;
+NSString *nFirmwareVersion = nil;
+NSString *nCPUArchitecture = nil;
+NSString *nWirelessBoardSnum = nil;
+NSString *nBasebandCertId = nil;
+NSString *nBasebandFirmwareVersion = nil;
+
+
 
 #pragma mark Utility Functions
 
@@ -150,7 +196,6 @@ static BOOL shouldHookFromPreference(NSString *preferenceSetting)
 {
     BOOL shouldHook = NO;
     NSMutableDictionary* plist = [[NSMutableDictionary alloc] initWithContentsOfFile:PREFERENCE_FILE];
-    //NSString *albumName; 
     if (!plist)
     {
         SSKLog(@"Preference file not found.");
@@ -161,27 +206,51 @@ static BOOL shouldHookFromPreference(NSString *preferenceSetting)
         shouldHook = [[plist objectForKey:preferenceSetting] boolValue];
         if ([plist objectForKey:@"BuildVersion"] != nil) {
             nBuildVersion = [plist objectForKey:@"BuildVersion"];
-            SSKLog(@"Loaded BuildVersion = %@", nBuildVersion);
+            //SSKLog(@"Loaded BuildVersion = %@", nBuildVersion);
         }
-        if ([plist objectForKey:@"HardwareModel"] != nil) {
+        if ([plist objectForKey:@"DeviceColor"] != nil) {
+	   nDeviceColor = [plist objectForKey:@"DeviceColor"];
+           //SSKLog(@"Loaded nDeviceColor = %@", nDeviceColor);
+        }
+        if ([plist objectForKey:@"DeviceEnclosureColor"] != nil) {
+	   nDeviceEnclosureColor = [plist objectForKey:@"DeviceEnclosureColor"];
+           //SSKLog(@"Loaded nDeviceEnclosureColor = %@", nDeviceEnclosureColor);
+        }
+	if ([plist objectForKey:@"HardwareModel"] != nil) {
             nHardwareModel = [plist objectForKey:@"HardwareModel"];
-            SSKLog(@"Loaded HardwareModel = %@", nHardwareModel);
+            //SSKLog(@"Loaded HardwareModel = %@", nHardwareModel);
+        }
+        if ([plist objectForKey:@"ModelNumber"] != nil) {
+            nHardwareModel = [plist objectForKey:@"ModelNumber"];
+            //SSKLog(@"Loaded ModelNumber = %@", nModelNumber);
         }
         if ([plist objectForKey:@"ProductType"] != nil) {
             nProductType = [plist objectForKey:@"ProductType"];
-            SSKLog(@"Loaded ProductType = %@", nProductType);
+            //SSKLog(@"Loaded ProductType = %@", nProductType);
         }
         if ([plist objectForKey:@"ProductVersion"] != nil) {
             nProductVersion = [plist objectForKey:@"ProductVersion"];
-            SSKLog(@"Loaded ProductVersion = %@", nProductVersion);
+            //SSKLog(@"Loaded ProductVersion = %@", nProductVersion);
         }
         if ([plist objectForKey:@"SerialNumber"] != nil) {
             nSerialNumber = [plist objectForKey:@"SerialNumber"];
-            SSKLog(@"Loaded SerialNumber = %@", nSerialNumber);
+            //SSKLog(@"Loaded SerialNumber = %@", nSerialNumber);
         }
         if ([plist objectForKey:@"UniqueDeviceID"] != nil) {
             nUniqueDeviceID = [plist objectForKey:@"UniqueDeviceID"];
-            SSKLog(@"Loaded UniqueDeviceID = %@", nUniqueDeviceID);
+            //SSKLog(@"Loaded UniqueDeviceID = %@", nUniqueDeviceID);
+        }
+        if ([plist objectForKey:@"WifiAddress"] != nil) {
+            nWifiAddress = [plist objectForKey:@"WifiAddress"];
+            //SSKLog(@"Loaded WifiAddress = %@", WifiAddress);
+        }
+        if ([plist objectForKey:@"HWModelStr"] != nil) {
+            nHWModelStr = [plist objectForKey:@"HWModelStr"];
+            //SSKLog(@"Loaded HWModelStr = %@", HWModelStr);
+        }
+        if ([plist objectForKey:@"HardwarePlatform"] != nil) {
+            nHardwarePlatform = [plist objectForKey:@"HardwarePlatform"];
+            //SSKLog(@"Loaded HardwarePlatform = %@", HardwarePlatform);
         }
     }
     return shouldHook;
@@ -269,6 +338,7 @@ static OSStatus replaced_SSLRead(SSLContextRef context, void *data, size_t dataL
     
     return ret;
 }
+*/
 
 static inline int replace_string(void *data, size_t dataLength, const char *s1, const char *s2)
 {
@@ -288,7 +358,6 @@ static inline int replace_string(void *data, size_t dataLength, const char *s1, 
     }
     return retval;
 }
-*/
 
 #define REPLACE_STRING(A, B, C, D, E) if (replace_string(A, B, C, D)) { SSKLog(@"%@ Replaced %s -> %s", E, C, D); }
 
@@ -298,20 +367,20 @@ static OSStatus (*original_SSLWrite)(SSLContextRef context, void *data, size_t d
 static OSStatus replaced_SSLWrite(SSLContextRef context, void *data, size_t dataLength, size_t *processed)
 {
 
-    //NSString *appID = [[NSBundle mainBundle] bundleIdentifier];
-/*    
+    NSString *appID = [[NSBundle mainBundle] bundleIdentifier];
+
     if (dataLength > 0 && appID && [appID isEqualToString:@"com.apple.apsd"]) 
     {
         if (nProductType != nil) REPLACE_STRING(data, dataLength, [oProductType UTF8String], [nProductType UTF8String], appID);     
     }
-*/
+
     OSStatus ret = original_SSLWrite(context, data, dataLength, processed);
-/*    
+
     if (*processed > 0 && [appID isEqualToString:@"com.apple.apsd"]) {
         if (appID) SSKLog(@"%@ SSLWrite() processed=%d", appID, *processed);
 
-        writeDataToFile(appID, data, *processed);
-
+        writeDataToFile(appID, @"ssl", data, *processed, 0);
+/*
         NSData *myData = [[NSData alloc] initWithBytes:data length:*processed];
         NSString *httpString = isHTTPRequest(myData);
     
@@ -322,9 +391,43 @@ static OSStatus replaced_SSLWrite(SSLContextRef context, void *data, size_t data
             //int bodylen = getHttpRequestBody(httpString).length;
             if (appID) SSKLog(@"%@ SSLWrite() cmd %@, req len=%d", appID, cmdstr, *processed);
         }
+*/
     }
-*/    
+
     return ret;
+}
+
+#pragma mark lockdown_copy_value
+
+static CFPropertyListRef (*original_lockdown_copy_value)(LockdownConnectionRef connection, CFStringRef domain, CFStringRef key);
+static CFPropertyListRef replaced_lockdown_copy_value(LockdownConnectionRef connection, CFStringRef domain, CFStringRef key)
+{
+    NSString *appID = [[NSBundle mainBundle] bundleIdentifier];
+    CFPropertyListRef retval = original_lockdown_copy_value(connection, domain, key);
+    if (appID) SSKLog(@"%@ lockdown_copy_value(%@,%@)", appID, domain, key);
+    return retval;
+}
+
+#pragma mark lockdown_set_value
+static LockdownError (*original_lockdown_set_value)(LockdownConnectionRef connection, CFStringRef domain, CFStringRef key, CFPropertyListRef newValue);
+static LockdownError replaced_lockdown_set_value(LockdownConnectionRef connection, CFStringRef domain, CFStringRef key, CFPropertyListRef newValue)
+{
+    NSString *appID = [[NSBundle mainBundle] bundleIdentifier];
+    LockdownError retval = original_lockdown_set_value(connection, domain, key, newValue);
+    if (appID) SSKLog(@"%@ lockdown_set_value(%@,%@)", appID, domain, key);
+    return retval;
+}
+
+/*
+#pragma mark IOHIDDeviceGetProperty
+
+extern CFTypeRef IOHIDDeviceGetProperty(IOHIDDeviceRef device, CFStringRef key);
+static CFTypeRef (*original_IOHIDDeviceGetProperty)(IOHIDDeviceRef device, CFStringRef key);
+static CFTypeRef replaced_IOHIDDeviceGetProperty(IOHIDDeviceRef device, CFStringRef key) {
+	NSString *appID = [[NSBundle mainBundle] bundleIdentifier];
+	if (appID) SSKLog(@"%@: IOHIDDeviceGetProperty(%@)", appID, key);
+	CFTypeRef retval = original_IOHIDDeviceGetProperty(device, key);
+	return retval;
 }
 
 #pragma mark cchmac_init
@@ -369,7 +472,7 @@ static void replaced_ccdigest_init(const struct ccdigest_info *di, ccdigest_ctx_
 	writeDataToFile(appID, @"dupdate", NULL, 0, di->output_size);
 	return;
 }
-
+*/
 /*
 #pragma mark CC_SHA1 Hook
 
@@ -499,23 +602,57 @@ static OSStatus replaced_SSLHandshake(SSLContextRef context)
     return result;
 }
 
-/*
 #pragma mark MGCopyAnswer Hook
 
 static CFPropertyListRef (*orig_MGCopyAnswer)(CFStringRef prop);
 static CFPropertyListRef new_MGCopyAnswer(CFStringRef prop) {
     
     CFPropertyListRef retval = nil;
-    
-    //if (prop == CFSTR("ProductType")) {
-    //            SSKLog(@"MGCopyAnswer(%@)\n", prop);
-    //            retval = orig_MGCopyAnswer(prop);
-    //            CFRelease(retval);
-    //            return CFSTR("iPhone8,2");
-    //} else {
-    //SSKLog(@"MGCopyAnswer(%@)\n", prop);
+    NSString *propstr = [NSString stringWithFormat:@"%@", (NSString*)prop];
     retval = orig_MGCopyAnswer(prop);
-    //}
+
+    if (![propstr isEqualToString:@"ReleaseType"]) {
+        SSKLog(@"MGCopyAnswer(%@)=%@\n", prop, retval);
+    }
+
+    if ([propstr isEqualToString:@"SerialNumber"] && nSerialNumber != nil) {
+        SSKLog(@"MGCopyAnswer(%@): replaced %@ with %@\n", prop, oSerialNumber, nSerialNumber);
+        if (retval) CFRelease(retval);
+	retval = (CFStringRef) [[NSString alloc]initWithString:nSerialNumber];
+    } else if ([propstr isEqualToString:@"ProductType"] && nProductType != nil) {
+        SSKLog(@"MGCopyAnswer(%@): replaced %@ with %@\n", prop, oProductType, nProductType);
+        if (retval) CFRelease(retval);
+	retval = (CFStringRef) [[NSString alloc]initWithString:nProductType];
+    } else if ([propstr isEqualToString:@"ModelNumber"] && nModelNumber != nil) {
+        SSKLog(@"MGCopyAnswer(%@): replaced %@ with %@\n", prop, oModelNumber, nModelNumber);
+        if (retval) CFRelease(retval);
+	retval = (CFStringRef) [[NSString alloc]initWithString:nModelNumber];
+    } else if ([propstr isEqualToString:@"DeviceColor"] && nDeviceColor != nil) {
+        SSKLog(@"MGCopyAnswer(%@): replaced %@ with %@\n", prop, oDeviceColor, nDeviceColor);
+        if (retval) CFRelease(retval);
+	retval = (CFStringRef) [[NSString alloc]initWithString:nDeviceColor];
+    } else if ([propstr isEqualToString:@"DeviceEnclosureColor"] && nDeviceEnclosureColor != nil) {
+        SSKLog(@"MGCopyAnswer(%@): replaced %@ with %@\n", prop, oDeviceEnclosureColor, nDeviceEnclosureColor);
+        if (retval) CFRelease(retval);
+	retval = (CFStringRef) [[NSString alloc]initWithString:nDeviceEnclosureColor];
+    } else if ([propstr isEqualToString:@"UniqueDeviceID"] && nUniqueDeviceID != nil) {
+        SSKLog(@"MGCopyAnswer(%@): replaced %@ with %@\n", prop, oUniqueDeviceID, nUniqueDeviceID);
+        if (retval) CFRelease(retval);
+	retval = (CFStringRef) [[NSString alloc]initWithString:nUniqueDeviceID];
+    } else if ([propstr isEqualToString:@"WifiAddress"] && nWifiAddress != nil) {
+        SSKLog(@"MGCopyAnswer(%@): replaced %@ with %@\n", prop, oWifiAddress, nWifiAddress);
+        if (retval) CFRelease(retval);
+	retval = (CFStringRef) [[NSString alloc]initWithString:nWifiAddress];
+    } else if ([propstr isEqualToString:@"HWModelStr"] && nHWModelStr != nil) {
+        SSKLog(@"MGCopyAnswer(%@): replaced %@ with %@\n", prop, oHWModelStr, nHWModelStr);
+        if (retval) CFRelease(retval);
+	retval = (CFStringRef) [[NSString alloc]initWithString:nHWModelStr];
+    } else if ([propstr isEqualToString:@"HardwarePlatform"] && nHardwarePlatform != nil) {
+        SSKLog(@"MGCopyAnswer(%@): replaced %@ with %@\n", prop, oHardwarePlatform, nHardwarePlatform);
+        if (retval) CFRelease(retval);
+	retval = (CFStringRef) [[NSString alloc]initWithString:nHardwarePlatform];
+    }
+
     return retval;
 }
 
@@ -529,6 +666,7 @@ static Boolean replaced_MGGetBoolAnswer(CFStringRef property)
     return retval;
 }
 
+/*
 #pragma mark SSLCopyPeerTrust hook
 static OSStatus (*original_SSLCopyPeerTrust)(SSLContextRef context, SecTrustRef *trust);
 static OSStatus replaced_SSLCopyPeerTrust(SSLContextRef context, SecTrustRef *trust)
@@ -628,7 +766,7 @@ __attribute__((constructor)) static void init(int argc, const char **argv)
     {
         // Substrate-based hooking; only hook if the preference file says so
         //SSKLog(@"Subtrate hook enabled.");
-	NSString *appID = [[NSBundle mainBundle] bundleIdentifier];
+	//NSString *appID = [[NSBundle mainBundle] bundleIdentifier];
 
         // SecureTransport hooks
         MSHookFunction((void *) SSLHandshake,(void *)  replaced_SSLHandshake, (void **) &original_SSLHandshake);
@@ -640,11 +778,17 @@ __attribute__((constructor)) static void init(int argc, const char **argv)
         //MSHookFunction((void *) CFHTTPMessageCreateRequest,(void *)  replaced_CFHTTPMessageCreateRequest, (void **) &original_CFHTTPMessageCreateRequest);
         //MSHookFunction((void *) CFHTTPMessageSetBody,(void *)  replaced_CFHTTPMessageSetBody, (void **) &original_CFHTTPMessageSetBody);
         MSHookFunction((void *) SecTrustEvaluate,(void *)  replaced_SecTrustEvaluate, (void **) &original_SecTrustEvaluate);
-        //MSHookFunction((void *) SecPolicyCreateSSL,(void *)  replaced_SecPolicyCreateSSL, (void **) &original_SecPolicyCreateSSL);
+        MSHookFunction((void *) lockdown_copy_value,(void *)  replaced_lockdown_copy_value, (void **) &original_lockdown_copy_value);
+        MSHookFunction((void *) lockdown_set_value,(void *)  replaced_lockdown_set_value, (void **) &original_lockdown_set_value);
+
+	//MSHookFunction((void *) SecPolicyCreateSSL,(void *)  replaced_SecPolicyCreateSSL, (void **) &original_SecPolicyCreateSSL);
+/*
 	MSHookFunction((void *) cchmac_init,(void *)  replaced_cchmac_init, (void **) &original_cchmac_init);
 	MSHookFunction((void *) cchmac_update,(void *)  replaced_cchmac_update, (void **) &original_cchmac_update);
         MSHookFunction((void *) ccdigest_update,(void *)  replaced_ccdigest_update, (void **) &original_ccdigest_update);
 	MSHookFunction((void *) ccdigest_init,(void *)  replaced_ccdigest_init, (void **) &original_ccdigest_init);
+	MSHookFunction((void *) IOHIDDeviceGetProperty, (void *)  replaced_IOHIDDeviceGetProperty, (void **) &original_IOHIDDeviceGetProperty);
+*/
 	//MSHookFunction((void *) CC_SHA1,(void *)  replaced_CC_SHA1, (void **) &original_CC_SHA1);
 	//MSHookFunction((void *) CC_SHA1_Update,(void *)  replaced_CC_SHA1_Update, (void **) &original_CC_SHA1_Update);
 	//MSHookFunction((void *) CC_SHA1_Final,(void *)  replaced_CC_SHA1_Final, (void **) &original_CC_SHA1_Final);
@@ -654,43 +798,43 @@ __attribute__((constructor)) static void init(int argc, const char **argv)
 
         //NSString *appID = [[NSBundle mainBundle] bundleIdentifier];
         // Substrate-based hooking; only hook if the preference file says so
-        if (appID && [appID isEqualToString:@"com.apple.apsd"]) {
-		MSHookFunction((void *) SSLWrite,(void *)  replaced_SSLWrite, (void **) &original_SSLWrite);
+	//if (appID && ([appID isEqualToString:@"com.apple.apsd"] || [appID isEqualToString:@"com.apple.lockdownd"] || [appID isEqualToString:@"com.apple.Preferences"])) {
+	    MSHookFunction((void *) SSLWrite,(void *)  replaced_SSLWrite, (void **) &original_SSLWrite);
 /*
-            MSHookFunction((void *) SSLCopyPeerTrust,(void *)  replaced_SSLCopyPeerTrust, (void **) &original_SSLCopyPeerTrust);
+	    MSHookFunction((void *) SSLCopyPeerTrust,(void *)  replaced_SSLCopyPeerTrust, (void **) &original_SSLCopyPeerTrust);
             MSHookFunction((void *) SecTrustSetPolicies,(void *)  replaced_SecTrustSetPolicies, (void **) &original_SecTrustSetPolicies);
             MSHookFunction((void *) SecTrustCopyPublicKey,(void *)  replaced_SecTrustCopyPublicKey, (void **) &original_SecTrustCopyPublicKey);
             MSHookFunction((void *) SecTrustCreateWithCertificates,(void *)  replaced_SecTrustCreateWithCertificates, (void **) &original_SecTrustCreateWithCertificates);
             MSHookFunction((void *) SecKeyRawVerify,(void *)  replaced_SecKeyRawVerify, (void **) &original_SecKeyRawVerify);
-            MSHookFunction((void*)MGGetBoolAnswer, (void*)replaced_MGGetBoolAnswer, (void**)&orig_MGGetBoolAnswer);
+*/
+	    MSHookFunction((void*)MGGetBoolAnswer, (void*)replaced_MGGetBoolAnswer, (void**)&orig_MGGetBoolAnswer);
             MSHookFunction((void*)MGCopyAnswer, (void*)new_MGCopyAnswer, (void**)&orig_MGCopyAnswer);
             //MSHookFunction((void*)MGGetBoolAnswer, (void*)replaced_MGGetBoolAnswer, (void**)&orig_MGGetBoolAnswer);
             oBluetoothAddress = (__bridge NSString *)orig_MGCopyAnswer(kMGBluetoothAddress);
-            SSKLog(@"oBluetoothAddress=%@", oBluetoothAddress);
+            //SSKLog(@"oBluetoothAddress=%@", oBluetoothAddress);
             oBuildVersion = (__bridge NSString *)orig_MGCopyAnswer(kMGBuildVersion);
-            SSKLog(@"oBuildVersion=%@", oBuildVersion);
+            //SSKLog(@"oBuildVersion=%@", oBuildVersion);
             oDeviceColor = (__bridge NSString *)orig_MGCopyAnswer(kMGDeviceColor);
-            SSKLog(@"oDeviceColor=%@", oDeviceColor);
+            //SSKLog(@"oDeviceColor=%@", oDeviceColor);
             oDeviceEnclosureColor = (__bridge NSString *)orig_MGCopyAnswer(CFSTR("DeviceEnclosureColor"));
-            SSKLog(@"oDeviceEnclosureColor=%@", oDeviceEnclosureColor);
+            //SSKLog(@"oDeviceEnclosureColor=%@", oDeviceEnclosureColor);
             oHardwareModel = (__bridge NSString *)orig_MGCopyAnswer(kMGHWModel);
-            SSKLog(@"oHardwareModel=%@", oHardwareModel);
+            //SSKLog(@"oHardwareModel=%@", oHardwareModel);
             oModelNumber = (__bridge NSString *)orig_MGCopyAnswer(kMGModelNumber);
-            SSKLog(@"oModelNumber=%@", oModelNumber);
+            //SSKLog(@"oModelNumber=%@", oModelNumber);
             oProductType = (__bridge NSString *)orig_MGCopyAnswer(kMGProductType);
-            SSKLog(@"oProductType=%@", oProductType);
+            //SSKLog(@"oProductType=%@", oProductType);
             oProductVersion = (__bridge NSString *)orig_MGCopyAnswer(kMGProductVersion);
-            SSKLog(@"oProductVersion=%@", oProductVersion);
+            //SSKLog(@"oProductVersion=%@", oProductVersion);
             oSerialNumber = (__bridge NSString *)orig_MGCopyAnswer(kMGSerialNumber);
-            SSKLog(@"oSerialNumber=%@", oSerialNumber);
+            //SSKLog(@"oSerialNumber=%@", oSerialNumber);
             oUniqueDeviceID = (__bridge NSString *)orig_MGCopyAnswer(kMGUniqueDeviceID);
-            SSKLog(@"oUniqueDeviceID=%@", oUniqueDeviceID);
+            //SSKLog(@"oUniqueDeviceID=%@", oUniqueDeviceID);
             oWifiAddress = (__bridge NSString *)orig_MGCopyAnswer(kMGWifiAddress);
-            SSKLog(@"oWifiAddress=%@", oWifiAddress);
+            //SSKLog(@"oWifiAddress=%@", oWifiAddress);
             oDieID = (__bridge NSString *)orig_MGCopyAnswer(kMGDieID);
-            SSKLog(@"oDieID=%@", oDieID);
-*/
-        }
+            //SSKLog(@"oDieID=%@", oDieID);
+        //}
         // CocoaSPDY hooks - https://github.com/twitter/CocoaSPDY
         // TODO: Enable these hooks for the fishhook-based hooking so it works on OS X too
         Class spdyProtocolClass = NSClassFromString(@"SPDYProtocol");
