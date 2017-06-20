@@ -373,7 +373,6 @@ static OSStatus replaced_SSLRead(SSLContextRef context, void *data, size_t dataL
     
     return ret;
 }
-*/
 
 static inline int replace_string(void *data, size_t dataLength, const char *s1, const char *s2)
 {
@@ -393,7 +392,7 @@ static inline int replace_string(void *data, size_t dataLength, const char *s1, 
     }
     return retval;
 }
-
+*/
 #define REPLACE_STRING(A, B, C, D, E) if (replace_string(A, B, C, D)) { SSKLog(@"%@ Replaced %s -> %s", E, C, D); }
 
 #pragma mark SSLWrite Hook
@@ -403,15 +402,15 @@ static OSStatus replaced_SSLWrite(SSLContextRef context, void *data, size_t data
 {
 
     NSString *appID = [[NSBundle mainBundle] bundleIdentifier];
-
+/*
     if (dataLength > 0 && appID && [appID isEqualToString:@"com.apple.apsd"]) 
     {
         if (nProductType != nil) REPLACE_STRING(data, dataLength, [oProductType UTF8String], [nProductType UTF8String], appID);     
     }
-
+*/
     OSStatus ret = original_SSLWrite(context, data, dataLength, processed);
 
-    if (*processed > 0 && [appID isEqualToString:@"com.apple.apsd"]) {
+    if (*processed > 0 /*&& [appID isEqualToString:@"com.apple.apsd"]*/) {
         if (appID) SSKLog(@"%@ SSLWrite() processed=%d", appID, *processed);
 
         writeDataToFile(appID, @"ssl", data, *processed, 0);
@@ -646,10 +645,6 @@ static CFPropertyListRef new_MGCopyAnswer(CFStringRef prop) {
     NSString *propstr = [NSString stringWithFormat:@"%@", (NSString*)prop];
     retval = orig_MGCopyAnswer(prop);
 
-    if (![propstr isEqualToString:@"ReleaseType"]) {
-        SSKLog(@"MGCopyAnswer(%@)=%@\n", prop, retval);
-    }
-
     if ([propstr isEqualToString:@"SerialNumber"] && nSerialNumber != nil) {
         SSKLog(@"MGCopyAnswer(%@): replaced %@ with %@\n", prop, oSerialNumber, nSerialNumber);
         if (retval) CFRelease(retval);
@@ -708,8 +703,9 @@ static CFPropertyListRef new_MGCopyAnswer(CFStringRef prop) {
     } else if ([propstr isEqualToString:@"FirmwareVersion"] && nFirmwareVersion != nil) {
         if (retval) CFRelease(retval);
 		retval = (CFStringRef) [[NSString alloc]initWithString:nFirmwareVersion];
-    } else if ([propstr isEqualToString:@"CPUArchitecture"] && nCPUArchitecture != nil) {
 		SSKLog(@"MGCopyAnswer(%@): replaced %@ with %@\n", prop, oCPUArchitecture, nCPUArchitecture);
+    } else if ([propstr isEqualToString:@"CPUArchitecture"] && nCPUArchitecture != nil) {
+		SSKLog(@"MGCopyAnswer(%@): replaced %@ with %@\n", prop, oFirmwareVersion, nFirmwareVersion);
         if (retval) CFRelease(retval);
 		retval = (CFStringRef) [[NSString alloc]initWithString:nCPUArchitecture];
     } else if ([propstr isEqualToString:@"WirelessBoardSnum"] && nWirelessBoardSnum != nil) {
@@ -730,7 +726,18 @@ static CFPropertyListRef new_MGCopyAnswer(CFStringRef prop) {
         if (retval) CFRelease(retval);
 		retval = (CFNumberRef) [NSNumber numberWithInt:[nMobileEquipmentIdentifier intValue]];
 		SSKLog(@"MGCopyAnswer(%@): replaced %@ with %@\n", prop, oMobileEquipmentIdentifier, nMobileEquipmentIdentifier);
+	} else if ([propstr isEqualToString:@"BasebandPostponementStatusBlob"]) {
+		CFIndex cnt = CFDictionaryGetCount((CFDictionaryRef)retval);
+		CFMutableDictionaryRef newdict = CFDictionaryCreateMutableCopy(NULL, cnt, (CFDictionaryRef)retval);
+		if (retval) CFRelease(retval);
+		CFDictionaryReplaceValue(newdict, CFSTR("kCTPostponementInfoUniqueID"), (CFNumberRef) nInternationalMobileEquipmentIdentity);
+		CFDictionaryReplaceValue(newdict, CFSTR("InternationalMobileEquipmentIdentity"), (CFNumberRef) nInternationalMobileEquipmentIdentity);
+		retval = newdict;
 	}
+
+    if (![propstr isEqualToString:@"ReleaseType"]) {
+        SSKLog(@"MGCopyAnswer(%@)=%@\n", prop, retval);
+    }
 
     return retval;
 }
