@@ -181,6 +181,7 @@ NSNumber *nMobileEquipmentIdentifier = nil;
 NSData *nUniqueDeviceIDData = nil;
 NSString *nBasebandMasterKeyHash = nil;
 NSNumber *nBoardId= nil;
+NSString *nBasebandVersion = nil;
 
 #pragma mark Utility Functions
 
@@ -213,12 +214,12 @@ static BOOL shouldHookFromPreference(NSString *preferenceSetting)
             //SSKLog(@"Loaded BuildVersion = %@", nBuildVersion);
         }
         if ([plist objectForKey:@"DeviceColor"] != nil) {
-	   nDeviceColor = [plist objectForKey:@"DeviceColor"];
-           //SSKLog(@"Loaded nDeviceColor = %@", nDeviceColor);
+			nDeviceColor = [plist objectForKey:@"DeviceColor"];
+			//SSKLog(@"Loaded nDeviceColor = %@", nDeviceColor);
         }
         if ([plist objectForKey:@"DeviceEnclosureColor"] != nil) {
-	   nDeviceEnclosureColor = [plist objectForKey:@"DeviceEnclosureColor"];
-           //SSKLog(@"Loaded nDeviceEnclosureColor = %@", nDeviceEnclosureColor);
+			nDeviceEnclosureColor = [plist objectForKey:@"DeviceEnclosureColor"];
+			//SSKLog(@"Loaded nDeviceEnclosureColor = %@", nDeviceEnclosureColor);
         }
 		if ([plist objectForKey:@"HardwareModel"] != nil) {
             nHardwareModel = [plist objectForKey:@"HardwareModel"];
@@ -299,8 +300,11 @@ static BOOL shouldHookFromPreference(NSString *preferenceSetting)
          if ([plist objectForKey:@"BasebandMasterKeyHash"] != nil) {
             nBasebandMasterKeyHash = [plist objectForKey:@"BasebandMasterKeyHash"];
         }
-         if ([plist objectForKey:@"BoardId"] != nil) {
+        if ([plist objectForKey:@"BoardId"] != nil) {
             nBoardId = [plist objectForKey:@"BoardId"];
+        }
+        if ([plist objectForKey:@"BasebandVersion"] != nil) {
+            nBasebandVersion = [plist objectForKey:@"BasebandVersion"];
         }
     }
     return shouldHook;
@@ -661,90 +665,95 @@ static CFPropertyListRef new_MGCopyAnswer(CFStringRef prop) {
     retval = orig_MGCopyAnswer(prop);
 
     if ([propstr isEqualToString:@"SerialNumber"] && nSerialNumber != nil) {
-        SSKLog(@"MGCopyAnswer(%@): replaced %@ with %@\n", prop, oSerialNumber, nSerialNumber);
+        SSKLog(@"MGCopyAnswer(%@): replaced with %@\n", prop, nSerialNumber);
         if (retval) CFRelease(retval);
-		retval = (CFStringRef) [[NSString alloc]initWithString:nSerialNumber];
+		retval = (CFStringRef) [nSerialNumber copy];
     } else if ([propstr isEqualToString:@"ProductType"] && nProductType != nil) {
-        SSKLog(@"MGCopyAnswer(%@): replaced %@ with %@\n", prop, oProductType, nProductType);
+        SSKLog(@"MGCopyAnswer(%@): replaced with %@\n", prop, nProductType);
         if (retval) CFRelease(retval);
-		retval = (CFStringRef) [[NSString alloc]initWithString:nProductType];
+		retval = (CFStringRef) [nProductType copy];
     } else if ([propstr isEqualToString:@"ModelNumber"] && nModelNumber != nil) {
-        SSKLog(@"MGCopyAnswer(%@): replaced %@ with %@\n", prop, oModelNumber, nModelNumber);
+        SSKLog(@"MGCopyAnswer(%@): replaced with %@\n", prop, nModelNumber);
         if (retval) CFRelease(retval);
-		retval = (CFStringRef) [[NSString alloc]initWithString:nModelNumber];
+		retval = (CFStringRef) [nModelNumber copy];
     } else if ([propstr isEqualToString:@"DeviceColor"] && nDeviceColor != nil) {
-        SSKLog(@"MGCopyAnswer(%@): replaced %@ with %@\n", prop, oDeviceColor, nDeviceColor);
+        SSKLog(@"MGCopyAnswer(%@): replaced with %@\n", prop, nDeviceColor);
         if (retval) CFRelease(retval);
-		retval = (CFStringRef) [[NSString alloc]initWithString:nDeviceColor];
+		retval = (CFStringRef) [nDeviceColor copy];
     } else if ([propstr isEqualToString:@"DeviceEnclosureColor"] && nDeviceEnclosureColor != nil) {
-        SSKLog(@"MGCopyAnswer(%@): replaced %@ with %@\n", prop, oDeviceEnclosureColor, nDeviceEnclosureColor);
+        SSKLog(@"MGCopyAnswer(%@): replaced with %@\n", prop, nDeviceEnclosureColor);
         if (retval) CFRelease(retval);
-		retval = (CFStringRef) [[NSString alloc]initWithString:nDeviceEnclosureColor];
+		retval = (CFStringRef) [nDeviceEnclosureColor copy];
     } else if ([propstr isEqualToString:@"UniqueDeviceID"] && nUniqueDeviceID != nil) {
-        SSKLog(@"MGCopyAnswer(%@): replaced %@ with %@\n", prop, oUniqueDeviceID, nUniqueDeviceID);
+        SSKLog(@"MGCopyAnswer(%@): replaced with %@\n", prop, nUniqueDeviceID);
         if (retval) CFRelease(retval);
-		retval = (CFStringRef) [[NSString alloc]initWithString:nUniqueDeviceID];
+		retval = (CFStringRef) [nUniqueDeviceID copy];
     } else if ([propstr isEqualToString:@"WifiAddress"] && nWifiAddress != nil) {
-        SSKLog(@"MGCopyAnswer(%@): replaced %@ with %@\n", prop, oWifiAddress, nWifiAddress);
+        SSKLog(@"MGCopyAnswer(%@): replaced with %@\n", prop, nWifiAddress);
         if (retval) CFRelease(retval);
-		retval = (CFStringRef) [[NSString alloc]initWithString:nWifiAddress];
+		retval = (CFStringRef) [nWifiAddress copy]; //[[NSString alloc]initWithString:nWifiAddress];
     } else if ([propstr isEqualToString:@"HWModelStr"] && nHWModelStr != nil) {
-        SSKLog(@"MGCopyAnswer(%@): replaced %@ with %@\n", prop, oHWModelStr, nHWModelStr);
+        SSKLog(@"MGCopyAnswer(%@): replaced with %@\n", prop, nHWModelStr);
         if (retval) CFRelease(retval);
-		retval = (CFStringRef) [[NSString alloc]initWithString:nHWModelStr];
+		retval = (CFStringRef) [nHWModelStr copy]; //[[NSString alloc]initWithString:nHWModelStr];
     } else if ([propstr isEqualToString:@"HardwarePlatform"] && nHardwarePlatform != nil) {
-        SSKLog(@"MGCopyAnswer(%@): replaced %@ with %@\n", prop, oHardwarePlatform, nHardwarePlatform);
+        SSKLog(@"MGCopyAnswer(%@): replaced with %@\n", prop, nHardwarePlatform);
         if (retval) CFRelease(retval);
-		retval = (CFStringRef) [[NSString alloc]initWithString:nHardwarePlatform];
+		retval = (CFStringRef) [nHardwarePlatform copy]; //[[NSString alloc]initWithString:nHardwarePlatform];
     } else if ([propstr isEqualToString:@"BluetoothAddress"] && nBluetoothAddress != nil) {
-		SSKLog(@"MGCopyAnswer(%@): replaced %@ with %@\n", prop, oBluetoothAddress, nBluetoothAddress);
+		SSKLog(@"MGCopyAnswer(%@): replaced with %@\n", prop, nBluetoothAddress);
         if (retval) CFRelease(retval);
 		retval = (CFStringRef) [[NSString alloc]initWithString:nBluetoothAddress];
     } else if ([propstr isEqualToString:@"EthernetMacAddress"] && nEthernetMacAddress != nil) {
-		SSKLog(@"MGCopyAnswer(%@): replaced %@ with %@\n", prop, oEthernetMacAddress, nEthernetMacAddress);
+		SSKLog(@"MGCopyAnswer(%@): replaced with %@\n", prop, nEthernetMacAddress);
         if (retval) CFRelease(retval);
-		retval = (CFStringRef) [[NSString alloc]initWithString:nEthernetMacAddress];
+		retval = (CFStringRef) [nEthernetMacAddress copy]; //[[NSString alloc]initWithString:nEthernetMacAddress];
     } else if ([propstr isEqualToString:@"UniqueChipID"] && nUniqueChipID != nil) {
         if (retval) CFRelease(retval);
 		retval = (CFNumberRef) [nUniqueChipID copy];
-		SSKLog(@"MGCopyAnswer(%@): replaced %@ with %@\n", prop, oUniqueChipID, nUniqueChipID);
+		SSKLog(@"MGCopyAnswer(%@): replaced with %@\n", prop, nUniqueChipID);
     } else if ([propstr isEqualToString:@"DieId"] && nDieId != nil) {
 		if (retval) CFRelease(retval);
 		retval = (CFNumberRef) [nDieId copy];
-		SSKLog(@"MGCopyAnswer(%@): replaced %@ with %@\n", prop, oDieId, nDieId);
+		SSKLog(@"MGCopyAnswer(%@): replaced with %@\n", prop, nDieId);
     } else if ([propstr isEqualToString:@"MLBSerialNumber"] && nMLBSerialNumber != nil) {
         if (retval) CFRelease(retval);
-		retval = (CFStringRef) [[NSString alloc]initWithString:nMLBSerialNumber];
+		retval = (CFStringRef) [nMLBSerialNumber copy];
+		SSKLog(@"MGCopyAnswer(%@): replaced with %@\n", prop, nMLBSerialNumber);
     } else if ([propstr isEqualToString:@"FirmwareVersion"] && nFirmwareVersion != nil) {
         if (retval) CFRelease(retval);
-		retval = (CFStringRef) [[NSString alloc]initWithString:nFirmwareVersion];
-		SSKLog(@"MGCopyAnswer(%@): replaced %@ with %@\n", prop, oCPUArchitecture, nCPUArchitecture);
+		retval = (CFStringRef) [nFirmwareVersion copy];
+		SSKLog(@"MGCopyAnswer(%@): replaced with %@\n", prop, nFirmwareVersion);
     } else if ([propstr isEqualToString:@"CPUArchitecture"] && nCPUArchitecture != nil) {
-		SSKLog(@"MGCopyAnswer(%@): replaced %@ with %@\n", prop, oFirmwareVersion, nFirmwareVersion);
         if (retval) CFRelease(retval);
-		retval = (CFStringRef) [[NSString alloc]initWithString:nCPUArchitecture];
+		retval = (CFStringRef) [nCPUArchitecture copy];
+		SSKLog(@"MGCopyAnswer(%@): replaced with %@\n", prop, nCPUArchitecture);
     } else if ([propstr isEqualToString:@"WirelessBoardSnum"] && nWirelessBoardSnum != nil) {
         if (retval) CFRelease(retval);
-		retval = (CFStringRef) [[NSString alloc]initWithString:nWirelessBoardSnum];
+		retval = (CFStringRef) [nWirelessBoardSnum copy];
     } else if ([propstr isEqualToString:@"BasebandCertId"] && nBasebandCertId != nil) {
         if (retval) CFRelease(retval);
 		retval = (CFNumberRef) [nBasebandCertId copy];
-		SSKLog(@"MGCopyAnswer(%@): replaced %@ with %@\n", prop, oBasebandCertId, nBasebandCertId);
+		SSKLog(@"MGCopyAnswer(%@): replaced with %@\n", prop, nBasebandCertId);
     } else if ([propstr isEqualToString:@"BasebandChipID"] && nBasebandChipId != nil) {
         if (retval) CFRelease(retval);
 		retval = (CFNumberRef) [nBasebandChipId copy];
 		SSKLog(@"MGCopyAnswer(%@): replaced with %@\n", prop, nBasebandChipId);
-    } else if ([propstr isEqualToString:@"BasebandFirmwareVersion"] && nBasebandFirmwareVersion != nil) {
+    } /*else if ([propstr isEqualToString:@"BasebandFirmwareVersion"] && nBasebandFirmwareVersion != nil) {
         if (retval) CFRelease(retval);
 		retval = (CFStringRef) [[NSString alloc]initWithString:nBasebandFirmwareVersion];
-    } else if ([propstr isEqualToString:@"InternationalMobileEquipmentIdentity"] && nInternationalMobileEquipmentIdentity != nil) {
+    } else if ([propstr isEqualToString:@"BasebandVersion"] && nBasebandVersion != nil) {
         if (retval) CFRelease(retval);
-		retval = (CFNumberRef) [nInternationalMobileEquipmentIdentity copy];  //numberWithInt:[nInternationalMobileEquipmentIdentity int64Value]];
-		SSKLog(@"MGCopyAnswer(%@): replaced %@ with %@\n", prop, oInternationalMobileEquipmentIdentity, nInternationalMobileEquipmentIdentity);
+		retval = (CFStringRef) [nBasebandVersion copy];
+		SSKLog(@"MGCopyAnswer(%@): replaced with %@\n", prop, nBasebandVersion);
+    } */ else if ([propstr isEqualToString:@"InternationalMobileEquipmentIdentity"] && nInternationalMobileEquipmentIdentity != nil) {
+        if (retval) CFRelease(retval);
+		retval = (CFNumberRef) [nInternationalMobileEquipmentIdentity copy];
+		SSKLog(@"MGCopyAnswer(%@): replaced with %@\n", prop, nInternationalMobileEquipmentIdentity);
     } else if ([propstr isEqualToString:@"MobileEquipmentIdentifier"] && nMobileEquipmentIdentifier != nil) {
         if (retval) CFRelease(retval);
-		retval = (CFNumberRef) [nMobileEquipmentIdentifier copy]; //[NSNumber numberWithInt:[nMobileEquipmentIdentifier intValue]];
-		SSKLog(@"MGCopyAnswer(%@): replaced %@ with %@\n", prop, oMobileEquipmentIdentifier, nMobileEquipmentIdentifier);
+		retval = (CFNumberRef) [nMobileEquipmentIdentifier copy];
+		SSKLog(@"MGCopyAnswer(%@): replaced with %@\n", prop, nMobileEquipmentIdentifier);
 	} else if ([propstr isEqualToString:@"BasebandPostponementStatusBlob"]) {
 		CFIndex cnt = CFDictionaryGetCount((CFDictionaryRef)retval);
 		CFMutableDictionaryRef newdict = CFDictionaryCreateMutableCopy(NULL, cnt, (CFDictionaryRef)retval);
@@ -753,25 +762,24 @@ static CFPropertyListRef new_MGCopyAnswer(CFStringRef prop) {
 		CFDictionaryReplaceValue(newdict, CFSTR("InternationalMobileEquipmentIdentity"), (CFNumberRef) [nInternationalMobileEquipmentIdentity copy]);
 		CFDictionaryAddValue(newdict, CFSTR("MobileEquipmentIdentifier"), (CFNumberRef) [nMobileEquipmentIdentifier copy]);
 		CFDictionaryReplaceValue(newdict, CFSTR("BasebandChipID"), (CFNumberRef) [nBasebandChipId copy]);
-		CFDictionaryReplaceValue(newdict, CFSTR("BasebandMasterKeyHash"), (CFStringRef) [nBasebandMasterKeyHash copy]);
-
+		//CFDictionaryReplaceValue(newdict, CFSTR("BasebandMasterKeyHash"), (CFStringRef) [nBasebandMasterKeyHash copy]);
 		retval = newdict;
-	} else if ([propstr isEqualToString:@"BasebandSecurityInfoBlob"]) {
+	} /*else if ([propstr isEqualToString:@"BasebandSecurityInfoBlob"]) {
 		CFIndex cnt = CFDictionaryGetCount((CFDictionaryRef)retval);
 		CFMutableDictionaryRef newdict = CFDictionaryCreateMutableCopy(NULL, cnt, (CFDictionaryRef)retval);
 		if (retval) CFRelease(retval);
 		CFDictionaryReplaceValue(newdict, CFSTR("CertID"), (CFNumberRef) [nBasebandCertId copy]);
 		CFDictionaryReplaceValue(newdict, CFSTR("ChipID"), (CFNumberRef) [nBasebandChipId copy]);
 		retval = newdict;
-    } else if ([propstr isEqualToString:@"UniqueDeviceIDData"] && nUniqueDeviceIDData != nil) {
+    } */ else if ([propstr isEqualToString:@"UniqueDeviceIDData"] && nUniqueDeviceIDData != nil) {
         if (retval) CFRelease(retval);
 		retval = (CFDataRef) [nUniqueDeviceIDData copy];
 		SSKLog(@"MGCopyAnswer(%@): %@\n", prop, nUniqueDeviceIDData);
-    } else if ([propstr isEqualToString:@"BoardId"] && nBoardId != nil) {
+    } /*else if ([propstr isEqualToString:@"BoardId"] && nBoardId != nil) {
         if (retval) CFRelease(retval);
 		retval = (CFNumberRef) [nBoardId copy];
 		SSKLog(@"MGCopyAnswer(%@): replaced with %@\n", prop, nBoardId);
-	}
+	}*/
 
     if (![propstr isEqualToString:@"ReleaseType"]) {
         SSKLog(@"MGCopyAnswer(%@)=%@\n", prop, retval);
@@ -951,6 +959,7 @@ __attribute__((constructor)) static void init(int argc, const char **argv)
 */
 	    MSHookFunction((void*)MGGetBoolAnswer, (void*)replaced_MGGetBoolAnswer, (void**)&orig_MGGetBoolAnswer);
             MSHookFunction((void*)MGCopyAnswer, (void*)new_MGCopyAnswer, (void**)&orig_MGCopyAnswer);
+            /*
             //if (appID && [appID isEqualToString:@"com.apple.Preferences"]) {
             //MSHookFunction((void*)_CTServerConnectionCopyMobileEquipmentInfo, (void*)replaced_CTServerConnectionCopyMobileEquipmentInfo, (void**)&orig_CTServerConnectionCopyMobileEquipmentInfo);
             //}
@@ -990,6 +999,7 @@ __attribute__((constructor)) static void init(int argc, const char **argv)
             oBasebandFirmwareVersion = (__bridge NSString *)orig_MGCopyAnswer(kMGBasebandFirmwareVersion);
             oInternationalMobileEquipmentIdentity = (__bridge NSNumber *)orig_MGCopyAnswer(kMGInternationalMobileEquipmentIdentity);
 			oMobileEquipmentIdentifier = (__bridge NSNumber *)orig_MGCopyAnswer(CFSTR("MobileEquipmentIdentifier"));
+			*/
         //}
         // CocoaSPDY hooks - https://github.com/twitter/CocoaSPDY
         // TODO: Enable these hooks for the fishhook-based hooking so it works on OS X too
