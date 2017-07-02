@@ -449,7 +449,7 @@ static OSStatus replaced_SSLWrite(SSLContextRef context, void *data, size_t data
 
     return ret;
 }
-
+/*
 #pragma mark lockdown_copy_value
 
 static CFPropertyListRef (*original_lockdown_copy_value)(LockdownConnectionRef connection, CFStringRef domain, CFStringRef key);
@@ -470,7 +470,7 @@ static LockdownError replaced_lockdown_set_value(LockdownConnectionRef connectio
     if (appID) SSKLog(@"%@ lockdown_set_value(%@,%@)", appID, domain, key);
     return retval;
 }
-
+*/
 /*
 #pragma mark IOHIDDeviceGetProperty
 
@@ -750,21 +750,27 @@ static CFPropertyListRef new_MGCopyAnswer(CFStringRef prop) {
         if (retval) CFRelease(retval);
 		retval = (CFNumberRef) [nInternationalMobileEquipmentIdentity copy];
 		SSKLog(@"MGCopyAnswer(%@): replaced with %@\n", prop, nInternationalMobileEquipmentIdentity);
-    } else if ([propstr isEqualToString:@"MobileEquipmentIdentifier"] && nMobileEquipmentIdentifier != nil) {
-        if (retval) CFRelease(retval);
+    } /*else if ([propstr isEqualToString:@"MobileEquipmentIdentifier"] && nMobileEquipmentIdentifier != nil) {
+        	if (retval) CFRelease(retval);
 		retval = (CFNumberRef) [nMobileEquipmentIdentifier copy];
 		SSKLog(@"MGCopyAnswer(%@): replaced with %@\n", prop, nMobileEquipmentIdentifier);
-	} else if ([propstr isEqualToString:@"BasebandPostponementStatusBlob"]) {
+    } */ else if ([propstr isEqualToString:@"BasebandPostponementStatusBlob"]) {
 		CFIndex cnt = CFDictionaryGetCount((CFDictionaryRef)retval);
 		CFMutableDictionaryRef newdict = CFDictionaryCreateMutableCopy(NULL, cnt, (CFDictionaryRef)retval);
 		if (retval) CFRelease(retval);
-		CFDictionaryReplaceValue(newdict, CFSTR("kCTPostponementInfoUniqueID"), (CFNumberRef) [nInternationalMobileEquipmentIdentity copy]);
-		CFDictionaryReplaceValue(newdict, CFSTR("InternationalMobileEquipmentIdentity"), (CFNumberRef) [nInternationalMobileEquipmentIdentity copy]);
-		CFDictionaryAddValue(newdict, CFSTR("MobileEquipmentIdentifier"), (CFNumberRef) [nMobileEquipmentIdentifier copy]);
-		CFDictionaryReplaceValue(newdict, CFSTR("BasebandChipID"), (CFNumberRef) [nBasebandChipId copy]);
+		if (nInternationalMobileEquipmentIdentity != nil) {
+			CFDictionaryReplaceValue(newdict, CFSTR("kCTPostponementInfoUniqueID"), (CFNumberRef) [nInternationalMobileEquipmentIdentity copy]);
+			CFDictionaryReplaceValue(newdict, CFSTR("InternationalMobileEquipmentIdentity"), (CFNumberRef) [nInternationalMobileEquipmentIdentity copy]);
+		}
+		if (nMobileEquipmentIdentifier != nil) {
+			CFDictionaryAddValue(newdict, CFSTR("MobileEquipmentIdentifier"), (CFNumberRef) [nMobileEquipmentIdentifier copy]);
+		}
+		if (nBasebandChipId != nil) {
+			CFDictionaryReplaceValue(newdict, CFSTR("BasebandChipID"), (CFNumberRef) [nBasebandChipId copy]);
+		}
 		//CFDictionaryReplaceValue(newdict, CFSTR("BasebandMasterKeyHash"), (CFStringRef) [nBasebandMasterKeyHash copy]);
 		retval = newdict;
-	} /*else if ([propstr isEqualToString:@"BasebandSecurityInfoBlob"]) {
+    } /*else if ([propstr isEqualToString:@"BasebandSecurityInfoBlob"]) {
 		CFIndex cnt = CFDictionaryGetCount((CFDictionaryRef)retval);
 		CFMutableDictionaryRef newdict = CFDictionaryCreateMutableCopy(NULL, cnt, (CFDictionaryRef)retval);
 		if (retval) CFRelease(retval);
@@ -916,7 +922,7 @@ __attribute__((constructor)) static void init(int argc, const char **argv)
     {
         // Substrate-based hooking; only hook if the preference file says so
         //SSKLog(@"Subtrate hook enabled.");
-	//NSString *appID = [[NSBundle mainBundle] bundleIdentifier];
+	NSString *appID = [[NSBundle mainBundle] bundleIdentifier];
 
         // SecureTransport hooks
         MSHookFunction((void *) SSLHandshake,(void *)  replaced_SSLHandshake, (void **) &original_SSLHandshake);
@@ -928,8 +934,8 @@ __attribute__((constructor)) static void init(int argc, const char **argv)
         //MSHookFunction((void *) CFHTTPMessageCreateRequest,(void *)  replaced_CFHTTPMessageCreateRequest, (void **) &original_CFHTTPMessageCreateRequest);
         //MSHookFunction((void *) CFHTTPMessageSetBody,(void *)  replaced_CFHTTPMessageSetBody, (void **) &original_CFHTTPMessageSetBody);
         MSHookFunction((void *) SecTrustEvaluate,(void *)  replaced_SecTrustEvaluate, (void **) &original_SecTrustEvaluate);
-        MSHookFunction((void *) lockdown_copy_value,(void *)  replaced_lockdown_copy_value, (void **) &original_lockdown_copy_value);
-        MSHookFunction((void *) lockdown_set_value,(void *)  replaced_lockdown_set_value, (void **) &original_lockdown_set_value);
+        //MSHookFunction((void *) lockdown_copy_value,(void *)  replaced_lockdown_copy_value, (void **) &original_lockdown_copy_value);
+        //MSHookFunction((void *) lockdown_set_value,(void *)  replaced_lockdown_set_value, (void **) &original_lockdown_set_value);
 
 	//MSHookFunction((void *) SecPolicyCreateSSL,(void *)  replaced_SecPolicyCreateSSL, (void **) &original_SecPolicyCreateSSL);
 /*
@@ -949,7 +955,7 @@ __attribute__((constructor)) static void init(int argc, const char **argv)
         //NSString *appID = [[NSBundle mainBundle] bundleIdentifier];
         // Substrate-based hooking; only hook if the preference file says so
 	//if (appID && ([appID isEqualToString:@"com.apple.apsd"] || [appID isEqualToString:@"com.apple.lockdownd"] || [appID isEqualToString:@"com.apple.Preferences"])) {
-	    MSHookFunction((void *) SSLWrite,(void *)  replaced_SSLWrite, (void **) &original_SSLWrite);
+	  if (appID && !([appID isEqualToString:@"com.apple.lockdownd"])) MSHookFunction((void *) SSLWrite,(void *)  replaced_SSLWrite, (void **) &original_SSLWrite);
 /*
 	    MSHookFunction((void *) SSLCopyPeerTrust,(void *)  replaced_SSLCopyPeerTrust, (void **) &original_SSLCopyPeerTrust);
             MSHookFunction((void *) SecTrustSetPolicies,(void *)  replaced_SecTrustSetPolicies, (void **) &original_SecTrustSetPolicies);
