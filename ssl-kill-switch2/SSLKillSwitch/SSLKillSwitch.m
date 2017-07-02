@@ -150,8 +150,8 @@ NSString *oCPUArchitecture = nil;
 NSString *oWirelessBoardSnum = nil;
 NSNumber *oBasebandCertId = nil;
 NSString *oBasebandFirmwareVersion = nil;
-NSNumber *oInternationalMobileEquipmentIdentity = nil;
-NSNumber *oMobileEquipmentIdentifier = nil;
+NSString *oInternationalMobileEquipmentIdentity = nil;
+NSString *oMobileEquipmentIdentifier = nil;
 
 NSString *nBuildVersion = nil;
 NSString *nDeviceColor = nil;
@@ -176,12 +176,15 @@ NSString *nWirelessBoardSnum = nil;
 NSNumber *nBasebandCertId = nil;
 NSNumber *nBasebandChipId = nil;
 NSString *nBasebandFirmwareVersion = nil;
-NSNumber *nInternationalMobileEquipmentIdentity = nil;
-NSNumber *nMobileEquipmentIdentifier = nil;
+NSString *nInternationalMobileEquipmentIdentity = nil;
+NSString *nMobileEquipmentIdentifier = nil;
 NSData *nUniqueDeviceIDData = nil;
 NSString *nBasebandMasterKeyHash = nil;
 NSNumber *nBoardId= nil;
 NSString *nBasebandVersion = nil;
+NSString *nIntegratedCircuitCardIdentity = nil;
+NSArray *nCarrierBundleInfoArray = nil;
+
 
 #pragma mark Utility Functions
 
@@ -306,6 +309,12 @@ static BOOL shouldHookFromPreference(NSString *preferenceSetting)
         if ([plist objectForKey:@"BasebandVersion"] != nil) {
             nBasebandVersion = [plist objectForKey:@"BasebandVersion"];
         }
+        if ([plist objectForKey:@"CarrierBundleInfoArray"] != nil) {
+	    nCarrierBundleInfoArray = [plist objectForKey:@"CarrierBundleInfoArray"];
+        }
+        if ([plist objectForKey:@"IntegratedCircuitCardIdentity"] != nil) {
+		nIntegratedCircuitCardIdentity = [plist objectForKey:@"IntegratedCircuitCardIdentity"];
+	}
     }
     return shouldHook;
 }
@@ -731,7 +740,7 @@ static CFPropertyListRef new_MGCopyAnswer(CFStringRef prop) {
     } else if ([propstr isEqualToString:@"WirelessBoardSnum"] && nWirelessBoardSnum != nil) {
         if (retval) CFRelease(retval);
 		retval = (CFStringRef) [nWirelessBoardSnum copy];
-    } else if ([propstr isEqualToString:@"BasebandCertId"] && nBasebandCertId != nil) {
+    } /*else if ([propstr isEqualToString:@"BasebandCertId"] && nBasebandCertId != nil) {
         if (retval) CFRelease(retval);
 		retval = (CFNumberRef) [nBasebandCertId copy];
 		SSKLog(@"MGCopyAnswer(%@): replaced with %@\n", prop, nBasebandCertId);
@@ -739,7 +748,7 @@ static CFPropertyListRef new_MGCopyAnswer(CFStringRef prop) {
         if (retval) CFRelease(retval);
 		retval = (CFNumberRef) [nBasebandChipId copy];
 		SSKLog(@"MGCopyAnswer(%@): replaced with %@\n", prop, nBasebandChipId);
-    } /*else if ([propstr isEqualToString:@"BasebandFirmwareVersion"] && nBasebandFirmwareVersion != nil) {
+    } *//*else if ([propstr isEqualToString:@"BasebandFirmwareVersion"] && nBasebandFirmwareVersion != nil) {
         if (retval) CFRelease(retval);
 		retval = (CFStringRef) [[NSString alloc]initWithString:nBasebandFirmwareVersion];
     } else if ([propstr isEqualToString:@"BasebandVersion"] && nBasebandVersion != nil) {
@@ -747,26 +756,30 @@ static CFPropertyListRef new_MGCopyAnswer(CFStringRef prop) {
 		retval = (CFStringRef) [nBasebandVersion copy];
 		SSKLog(@"MGCopyAnswer(%@): replaced with %@\n", prop, nBasebandVersion);
     } */ else if ([propstr isEqualToString:@"InternationalMobileEquipmentIdentity"] && nInternationalMobileEquipmentIdentity != nil) {
-        if (retval) CFRelease(retval);
-		retval = (CFNumberRef) [nInternationalMobileEquipmentIdentity copy];
+        	if (retval) CFRelease(retval);
+		retval = (CFStringRef) [nInternationalMobileEquipmentIdentity copy];
 		SSKLog(@"MGCopyAnswer(%@): replaced with %@\n", prop, nInternationalMobileEquipmentIdentity);
     } /*else if ([propstr isEqualToString:@"MobileEquipmentIdentifier"] && nMobileEquipmentIdentifier != nil) {
         	if (retval) CFRelease(retval);
-		retval = (CFNumberRef) [nMobileEquipmentIdentifier copy];
+		retval = (CFStringRef) [nMobileEquipmentIdentifier copy];
 		SSKLog(@"MGCopyAnswer(%@): replaced with %@\n", prop, nMobileEquipmentIdentifier);
     } */ else if ([propstr isEqualToString:@"BasebandPostponementStatusBlob"]) {
 		CFIndex cnt = CFDictionaryGetCount((CFDictionaryRef)retval);
 		CFMutableDictionaryRef newdict = CFDictionaryCreateMutableCopy(NULL, cnt, (CFDictionaryRef)retval);
 		if (retval) CFRelease(retval);
 		if (nInternationalMobileEquipmentIdentity != nil) {
-			CFDictionaryReplaceValue(newdict, CFSTR("kCTPostponementInfoUniqueID"), (CFNumberRef) [nInternationalMobileEquipmentIdentity copy]);
-			CFDictionaryReplaceValue(newdict, CFSTR("InternationalMobileEquipmentIdentity"), (CFNumberRef) [nInternationalMobileEquipmentIdentity copy]);
+			CFDictionaryReplaceValue(newdict, CFSTR("kCTPostponementInfoUniqueID"), (CFStringRef) [nInternationalMobileEquipmentIdentity copy]);
+			CFDictionaryReplaceValue(newdict, CFSTR("InternationalMobileEquipmentIdentity"), (CFStringRef) [nInternationalMobileEquipmentIdentity copy]);
 		}
+		/*
 		if (nMobileEquipmentIdentifier != nil) {
-			CFDictionaryAddValue(newdict, CFSTR("MobileEquipmentIdentifier"), (CFNumberRef) [nMobileEquipmentIdentifier copy]);
+			CFDictionaryAddValue(newdict, CFSTR("MobileEquipmentIdentifier"), (CFStringRef) [nMobileEquipmentIdentifier copy]);
 		}
 		if (nBasebandChipId != nil) {
 			CFDictionaryReplaceValue(newdict, CFSTR("BasebandChipID"), (CFNumberRef) [nBasebandChipId copy]);
+		}*/
+		if (nIntegratedCircuitCardIdentity != nil) {
+			CFDictionaryAddValue(newdict, CFSTR("IntegratedCircuitCardIdentity"), (CFStringRef) [nIntegratedCircuitCardIdentity copy]);
 		}
 		//CFDictionaryReplaceValue(newdict, CFSTR("BasebandMasterKeyHash"), (CFStringRef) [nBasebandMasterKeyHash copy]);
 		retval = newdict;
@@ -781,6 +794,15 @@ static CFPropertyListRef new_MGCopyAnswer(CFStringRef prop) {
         if (retval) CFRelease(retval);
 		retval = (CFDataRef) [nUniqueDeviceIDData copy];
 		SSKLog(@"MGCopyAnswer(%@): %@\n", prop, nUniqueDeviceIDData);
+    } else if ([propstr isEqualToString:@"CarrierBundleInfoArray"] && nCarrierBundleInfoArray != nil) {
+        if (retval) CFRelease(retval);
+	retval = (CFArrayRef) [nCarrierBundleInfoArray copy];
+	SSKLog(@"MGCopyAnswer(%@): replaced with %@\n", prop, nCarrierBundleInfoArray);
+    } else if ([propstr isEqualToString:@"IntegratedCircuitCardIdentity"] && nIntegratedCircuitCardIdentity != nil) {
+        if (retval) CFRelease(retval);
+	retval = (CFStringRef) [nIntegratedCircuitCardIdentity copy];
+	SSKLog(@"MGCopyAnswer(%@): replaced with %@\n", prop, nIntegratedCircuitCardIdentity);
+
     } /*else if ([propstr isEqualToString:@"BoardId"] && nBoardId != nil) {
         if (retval) CFRelease(retval);
 		retval = (CFNumberRef) [nBoardId copy];
