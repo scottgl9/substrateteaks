@@ -5,11 +5,13 @@ include /opt/theos/makefiles/common.mk
 
 TWEAK_NAME = SSLKillSwitch2
 SSLKillSwitch2_FILES = SSLKillSwitch/SSLKillSwitch.m SSLKillSwitch/HTTPParser.m
-SSLKillSwitch2_LIBRARIES = MobileGestalt lockdown
+SSLKillSwitch2_LIBRARIES = MobileGestalt lockdown System
 SSLKillSwitch2_FRAMEWORKS = Security CFNetwork Foundation CoreFoundation CoreTelephony IOKit
+#SSLKillSwitch2_PRIVATE_FRAMEWORKS=XPCKit
 
 # Build as a Substrate Tweak
 SSLKillSwitch2_CFLAGS=-DSUBSTRATE_BUILD
+#SSLKillSwitch2_LDFLAGS=-lxpc –dylib1.o
 
 include $(THEOS_MAKE_PATH)/tweak.mk
 include $(THEOS_MAKE_PATH)/aggregate.mk

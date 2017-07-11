@@ -71,6 +71,8 @@
 			"IDSKeychainSyncingProxy",
 			"imagent",
 			"IMRemoteURLConnectionAgent",
+			"IMDMessageServicesAgent",
+			"InCallService",
 			"ind",
 			"installd",
 			"itunescloudd",
@@ -96,6 +98,7 @@
 			"MobileActivationDaemon",
 			"MobileGestaltHelper",
 			"MobilePhone",
+			"MobileSMS",
 			"mstreamd",
 			"nanoregistryd",
 			"navd",
@@ -139,6 +142,7 @@
 			"useractivityd",
 			"UserEventAgent",
 			"UsageSettings",
+			"vmd",
 			"wcd",
 		);
 	};
