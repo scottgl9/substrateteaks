@@ -15,7 +15,7 @@
 #import <CommonCrypto/CommonDigest.h>
 #import <CommonCrypto/CommonHMAC.h>
 //#import <IOKit/hid/IOHIDBase.h>
-#import <xpc/xpc.h>
+//#import <xpc/xpc.h>
 typedef struct __IOHIDDevice * IOHIDDeviceRef;
 
 /*! @typedef IOHIDElementRef
