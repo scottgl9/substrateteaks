@@ -153,6 +153,8 @@ NSNumber *oBasebandCertId = nil;
 NSString *oBasebandFirmwareVersion = nil;
 NSString *oInternationalMobileEquipmentIdentity = nil;
 NSString *oMobileEquipmentIdentifier = nil;
+NSString *oBasebandMasterKeyHash = nil;
+
 
 NSString *nBuildVersion = nil;
 NSString *nDeviceColor = nil;
@@ -447,7 +449,8 @@ static OSStatus replaced_SSLRead(SSLContextRef context, void *data, size_t dataL
     
     return ret;
 }
-
+*/
+/*
 static inline int replace_string(void *data, size_t dataLength, const char *s1, const char *s2)
 {
     int retval = 0;
@@ -865,7 +868,7 @@ static CFPropertyListRef new_MGCopyAnswer(CFStringRef prop) {
 		}
 		
 		if (nMobileEquipmentIdentifier != nil) {
-			CFDictionaryAddValue(newdict, CFSTR("MobileEquipmentIdentifier"), (CFStringRef) [nMobileEquipmentIdentifier copy]);
+			CFDictionarySetValue(newdict, CFSTR("MobileEquipmentIdentifier"), (CFStringRef) [nMobileEquipmentIdentifier copy]);
 		}
 
 		if (nBasebandChipId != nil) {
@@ -877,7 +880,7 @@ static CFPropertyListRef new_MGCopyAnswer(CFStringRef prop) {
 		}
 
 		if (nIntegratedCircuitCardIdentity != nil) {
-			CFDictionaryAddValue(newdict, CFSTR("IntegratedCircuitCardIdentity"), (CFStringRef) [nIntegratedCircuitCardIdentity copy]);
+			CFDictionarySetValue(newdict, CFSTR("IntegratedCircuitCardIdentity"), (CFStringRef) [nIntegratedCircuitCardIdentity copy]);
 		}
 		if (nBasebandMasterKeyHash != nil) {
 			CFDictionarySetValue(newdict, CFSTR("BasebandMasterKeyHash"), (CFStringRef) [nBasebandMasterKeyHash copy]);
@@ -942,7 +945,8 @@ static CFPropertyListRef new_MGCopyAnswer(CFStringRef prop) {
 		SSKLog(@"MGCopyAnswer(%@): replaced with %@\n", prop, retval);
     } else {
 		retval = orig_MGCopyAnswer(prop);
-		if (![propstr isEqualToString:@"ReleaseType"] && ![propstr isEqualToString:@"DeviceClass"] && ![propstr isEqualToString:@"oPeik/9e8lQWMszEjbPzng"]) {
+		if (![propstr isEqualToString:@"ReleaseType"] && ![propstr isEqualToString:@"DeviceClass"] && ![propstr isEqualToString:@"oPeik/9e8lQWMszEjbPzng"]
+		&& ![propstr hasPrefix:@"Battery"] && ![propstr hasPrefix:@"External"]) {
 			SSKLog(@"MGCopyAnswer(%@)=%@\n", prop, retval);
 		}
     }
@@ -950,6 +954,23 @@ static CFPropertyListRef new_MGCopyAnswer(CFStringRef prop) {
     return retval;
 }
 
+typedef mach_port_t	io_object_t;
+typedef io_object_t	io_registry_entry_t;
+typedef char		io_name_t[128];
+typedef UInt32		IOOptionBits;
+/*
+extern CFTypeRef IORegistryEntryCreateCFProperty(io_registry_entry_t entry, CFStringRef key, CFAllocatorRef allocator, IOOptionBits options);
+static CFTypeRef (*orig_IORegistryEntryCreateCFProperty)(io_registry_entry_t entry, CFStringRef key, CFAllocatorRef allocator, IOOptionBits options);
+static CFTypeRef replaced_IORegistryEntryCreateCFProperty(io_registry_entry_t entry, CFStringRef key, CFAllocatorRef allocator, IOOptionBits options)
+{
+	CFTypeRef retval = nil;
+	retval = orig_IORegistryEntryCreateCFProperty(entry, key, allocator, options);
+	if (!CFStringHasPrefix(key, CFSTR("Max")) && !CFStringHasPrefix(key, CFSTR("Current")) && !!CFStringHasPrefix(key, CFSTR("External"))) {
+		SSKLog(@"IORegistryEntryCreateCFProperty(%@)=%@\n", key, retval);
+	}
+	return retval;
+}
+*/
 typedef struct CTResult {
     int flag;
     int a;
@@ -976,14 +997,14 @@ static int * replaced_CTServerConnectionCopyMobileEquipmentInfo(CTResult *status
     SSKLog(@"CTServerConnectionCopyMobileEquipmentInfo()=%@\n", *equipmentInfo);
     return retval;
 }
+
 /*
-extern int * _CTServerConnectionCopyBasebandMasterKeyHash(CTResult *status, struct __CTServerConnection * Connection, CFMutableDictionaryRef *equipmentInfo);
-static int * (*orig_CTServerConnectionCopyBasebandMasterKeyHash)(CTResult *status, struct __CTServerConnection * Connection, CFMutableDictionaryRef *equipmentInfo);
-static int * replaced_CTServerConnectionCopyBasebandMasterKeyHash(CTResult *status, struct __CTServerConnection * Connection, CFMutableDictionaryRef *equipmentInfo)
+void  _CTServerConnectionIssueActivationTicket(CTResult *status, struct __CTServerConnection * Connection, CFMutableDictionaryRef *equipmentInfo);
+static void (*orig_CTServerConnectionIssueActivationTicket)(CTResult *status, struct __CTServerConnection * Connection, CFMutableDictionaryRef *equipmentInfo);
+static void replaced_CTServerConnectionIssueActivationTicket(CTResult *status, struct __CTServerConnection * Connection, CFMutableDictionaryRef *equipmentInfo)
 {
-	int * retval = orig_CTServerConnectionCopyBasebandMasterKeyHash(status, Connection, equipmentInfo);
-	SSKLog(@"_CTServerConnectionCopyBasebandMasterKeyHash()=%@\n", *equipmentInfo);
-	return retval;
+	orig_CTServerConnectionIssueActivationTicket(status, Connection, equipmentInfo);
+	SSKLog(@" _CTServerConnectionIssueActivationTicket()");
 }
 */
 /*
@@ -1060,6 +1081,60 @@ static OSStatus replaced_SecKeyRawVerify(SecKeyRef key, SecPadding padding, cons
 }
 */
 
+//CFDataRef SecGenerateCertificateRequestWithParameters(SecRDN *subject, CFDictionaryRef parameters, SecKeyRef publicKey, SecKeyRef privateKey);
+
+typedef uint32_t CCDigestAlgorithm;
+#define CCDigestAlg CCDigestAlgorithm
+/*
+#pragma mark CCDigest Hook/
+extern int CCDigest(CCDigestAlg algorithm, const uint8_t *data, size_t length, uint8_t *output);
+static int (*original_CCDigest)(CCDigestAlg algorithm, const uint8_t *data, size_t length, uint8_t *output);
+static int replaced_CCDigest(CCDigestAlg algorithm, const uint8_t *data, size_t length, uint8_t *output)
+{
+	int retval;
+	NSString *appID = [[NSBundle mainBundle] bundleIdentifier];
+	//SSKLog(@"%s len=%d", __FUNCTION__, length);
+	if (appID && ([appID isEqualToString:@"com.apple.mobileactivationd"]) && !memcmp((void*)data, "<?xml", 5)) {
+		//REPLACE_STRING((void *)data, length, [oInternationalMobileEquipmentIdentity cStringUsingEncoding:NSUTF8StringEncoding], "354451066373298", appID);
+		//REPLACE_STRING((void *)data, length, [oBasebandMasterKeyHash cStringUsingEncoding:NSUTF8StringEncoding], "8CB15EE4C8002199070D9500BB8FB183B02713A5CA2A6B92DB5E75CE15536182", appID);
+
+		NSData *plistData = [[NSData alloc] initWithBytes:data length:length];
+		CFErrorRef error;
+		CFPropertyListFormat format;
+		CFPropertyListRef plistRef = CFPropertyListCreateWithData(NULL, (CFDataRef)plistData, kCFPropertyListMutableContainersAndLeaves, &format, &error);
+		if (CFGetTypeID(plistRef) == CFDictionaryGetTypeID()) {
+			CFMutableDictionaryRef newdict = CFDictionaryCreateMutableCopy(NULL, 0, (CFDictionaryRef)plistRef);
+		
+			if (nBasebandMasterKeyHash != nil) {
+				CFDictionarySetValue(newdict, CFSTR("BasebandMasterKeyHash"), (CFStringRef) [nBasebandMasterKeyHash copy]);
+			}
+			if (nInternationalMobileEquipmentIdentity != nil) {
+				CFDictionarySetValue(newdict, CFSTR("InternationalMobileEquipmentIdentity"), (CFStringRef) [nInternationalMobileEquipmentIdentity copy]);
+			}
+			SSKLog(@"%@", newdict);
+			CFDataRef xmlData = CFPropertyListCreateData(NULL, newdict, format, 0, &error);
+			data = CFDataGetBytePtr(xmlData);
+			length = CFDataGetLength(xmlData);
+		}
+
+		//CFMutableDictionaryRef newdict = CFDictionaryCreateMutableCopy(NULL, 0, (CFDictionaryRef)plist);
+		//NSMutableDictionary *m = [plist mutableCopy];
+		//[m setObject:@"354451066373298" forKey:@"InternationalMobileEquipmentIdentity"];
+		
+		//id value = @"354451066373298";
+		//m[@"InternationalMobileEquipmentIdentity"] = value;
+
+		//CFMutableDictionaryRef newdict = CFDictionaryCreateMutableCopy(NULL, 0, (CFDictionaryRef)plist);
+
+		//CFDataRef xmlData = CFPropertyListCreateData(NULL, plist, format, 0, &error);
+
+	}
+	retval = original_CCDigest(algorithm, data, length, output);
+	if (length > 0 && memcmp((const char *)data, "MGCopyAnswer", 12)) writeDataToFile(appID, @"CCDigest", data, length, 0);
+	return retval;
+}
+*/
+
 #pragma mark SecTrustEvaluate Hook
 static OSStatus (*original_SecTrustEvaluate)(SecTrustRef trust, SecTrustResultType *result);
 static OSStatus replaced_SecTrustEvaluate(SecTrustRef trust, SecTrustResultType *result)
@@ -1081,6 +1156,28 @@ static OSStatus replaced_SecTrustEvaluate(SecTrustRef trust, SecTrustResultType 
     return status;
 }
 
+/*
+static CFStringRef (*oldcopyAnswerClasses)(id self, SEL _cmd, struct __CFString *cf);
+static CFStringRef newcopyAnswerClasses(id self, SEL _cmd, struct __CFString *cf) {
+	CFStringRef retval = oldcopyAnswerClasses(self, _cmd, cf);
+	SSKLog(@"%s %@ %@", __FUNCTION__, cf, retval);
+	return retval;
+}
+*/
+static NSMutableDictionary *(*oldDataArkstore)(id self, SEL _cmd);
+static NSMutableDictionary *newDataArkstore(id self, SEL _cmd)
+{
+	NSMutableDictionary *retval = oldDataArkstore(self, _cmd);
+	SSKLog(@"%s %@", __FUNCTION__, retval);
+	return retval;
+}
+/*
+static void (*oldaddAGestaltKey)(id self, SEL a2, struct __CFString *a3, CFDictionaryRef cf, bool a5, id error);
+static void newaddAGestaltKey(id self, SEL a2, struct __CFString *a3, CFDictionaryRef cf, bool a5, id error) {
+	oldaddAGestaltKey(self, a2, a3, cf, a5, error);
+	SSKLog(@"%s %@", __FUNCTION__, cf);
+}
+*/
 #pragma mark CocoaSPDY hook
 
 static void (*oldSetTLSTrustEvaluator)(id self, SEL _cmd, id evaluator);
@@ -1162,9 +1259,13 @@ __attribute__((constructor)) static void init(int argc, const char **argv)
 			
 			//MSHookFunction((void*)MGGetBoolAnswer, (void*)replaced_MGGetBoolAnswer, (void**)&orig_MGGetBoolAnswer);
             MSHookFunction((void*)MGCopyAnswer, (void*)new_MGCopyAnswer, (void**)&orig_MGCopyAnswer);
+            //MSHookFunction((void*)IORegistryEntryCreateCFProperty, (void*)replaced_IORegistryEntryCreateCFProperty, (void**)&orig_IORegistryEntryCreateCFProperty);
+            
             MSHookFunction((void*)_CTServerConnectionCopyMobileEquipmentInfo, (void*)replaced_CTServerConnectionCopyMobileEquipmentInfo, (void**)&orig_CTServerConnectionCopyMobileEquipmentInfo);
-            //MSHookFunction((void*)_CTServerConnectionCopyBasebandMasterKeyHash, (void*)replaced_CTServerConnectionCopyBasebandMasterKeyHash, (void**)&orig_CTServerConnectionCopyBasebandMasterKeyHash);
+            //MSHookFunction((void*)_CTServerConnectionIssueActivationTicket, (void*)replaced_CTServerConnectionIssueActivationTicket, (void**)&orig_CTServerConnectionIssueActivationTicket);
 			//if (appID && ([appID isEqualToString:@"com.apple.mobileactivationd"])) MSHookFunction((void*)xpc_dictionary_get_value, (void*)replaced_xpc_dictionary_get_value, (void**)&original_xpc_dictionary_get_value);
+            //MSHookFunction((void*)CCDigest, (void*)replaced_CCDigest, (void**)&original_CCDigest);
+
 			/*
 			if (appID && ([appID isEqualToString:@"com.apple.Preferences"])) {
 				MSImageRef libxpc = MSGetImageByName("/usr/lib/libSystem.B.dylib");
@@ -1180,6 +1281,13 @@ __attribute__((constructor)) static void init(int argc, const char **argv)
 				}
 			}
 			*/
+			oInternationalMobileEquipmentIdentity = (__bridge NSString *)orig_MGCopyAnswer(kMGInternationalMobileEquipmentIdentity);
+
+			CFDictionaryRef basebandblob = orig_MGCopyAnswer(CFSTR("BasebandPostponementStatusBlob"));
+			if (basebandblob != nil) {
+				oBasebandMasterKeyHash = (__bridge NSString *)CFDictionaryGetValue(basebandblob, CFSTR("BasebandMasterKeyHash"));
+				SSKLog(@"oBasebandMasterKeyHash=%@", oBasebandMasterKeyHash);
+			}
             /*
             //MSHookFunction((void*)MGGetBoolAnswer, (void*)replaced_MGGetBoolAnswer, (void**)&orig_MGGetBoolAnswer);
             oBuildVersion = (__bridge NSString *)orig_MGCopyAnswer(kMGBuildVersion);
@@ -1215,9 +1323,13 @@ __attribute__((constructor)) static void init(int argc, const char **argv)
             oWirelessBoardSnum = (__bridge NSString *)orig_MGCopyAnswer(CFSTR("WirelessBoardSnum"));
             oBasebandCertId = (__bridge NSNumber *)orig_MGCopyAnswer(kMGBasebandCertId);
             oBasebandFirmwareVersion = (__bridge NSString *)orig_MGCopyAnswer(kMGBasebandFirmwareVersion);
-            oInternationalMobileEquipmentIdentity = (__bridge NSNumber *)orig_MGCopyAnswer(kMGInternationalMobileEquipmentIdentity);
 			oMobileEquipmentIdentifier = (__bridge NSNumber *)orig_MGCopyAnswer(CFSTR("MobileEquipmentIdentifier"));
 			*/
+		if (appID && ([appID isEqualToString:@"com.apple.mobileactivationd"])) {
+			//MSHookMessageEx(NSClassFromString(@"GestaltHlpr"), NSSelectorFromString(@"copyAnswer:"), (IMP) &newcopyAnswerClasses, (IMP *)&oldcopyAnswerClasses);
+			//MSHookMessageEx(NSClassFromString(@"GestaltHlpr"), NSSelectorFromString(@"addAGestaltKey:toDictionary:required:errors:"), (IMP) &newaddAGestaltKey, (IMP *)&oldaddAGestaltKey);			
+			MSHookMessageEx(NSClassFromString(@"DataArk"), NSSelectorFromString(@"store"), (IMP) &newDataArkstore, (IMP *)&oldDataArkstore);
+		}
         //}
         // CocoaSPDY hooks - https://github.com/twitter/CocoaSPDY
         // TODO: Enable these hooks for the fishhook-based hooking so it works on OS X too
