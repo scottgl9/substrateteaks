@@ -19,7 +19,7 @@ include $(THEOS_MAKE_PATH)/aggregate.mk
 
 #IPHONEADDR=192.168.12.249
 #IPHONEADDR=192.168.0.144
-IPHONEADDR=10.1.10.80
+IPHONEADDR=192.168.1.69
 
 doclean:
 	rm -f packages/com.nablac0d3.SSLKillSwitch2_0.10-*+debug_iphoneos-arm.deb
@@ -31,6 +31,9 @@ doall: doclean clean all package
 
 ondeviceconsole:
 	sshpass -p alpine ssh root@$(IPHONEADDR) ondeviceconsole
+
+shell:
+	sshpass -p alpine ssh root@$(IPHONEADDR)
 
 after-install::
 	# Respring the device

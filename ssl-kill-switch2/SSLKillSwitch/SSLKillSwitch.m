@@ -197,7 +197,7 @@ NSData *nBasebandSerialNumber = nil;
 NSData *nBasebandRegionSKU = nil;
 NSString *nRegulatoryModelNumber = nil;
 NSString *nMarketingName = nil;
-
+NSString *nInternationalMobileSubscriberIdentity = nil;
 
 #pragma mark Utility Functions
 
@@ -361,7 +361,9 @@ static BOOL shouldHookFromPreference(NSString *preferenceSetting)
         if ([plist objectForKey:@"marketing-name"] != nil) {
             nMarketingName = [plist objectForKey:@"marketing-name"];
         }
- 
+        if ([plist objectForKey:@"InternationalMobileSubscriberIdentity"] != nil) {
+            nInternationalMobileSubscriberIdentity = [plist objectForKey:@"InternationalMobileSubscriberIdentity"];
+        }
 
     }
     return shouldHook;
@@ -849,6 +851,10 @@ static CFPropertyListRef new_MGCopyAnswer(CFStringRef prop) {
 		replaced = true;
         if (retval) CFRelease(retval);
 		retval = (CFStringRef) [nInternationalMobileEquipmentIdentity copy];
+	} else if ([propstr isEqualToString:@"InternationalMobileSubscriberIdentity"] && nInternationalMobileSubscriberIdentity != nil) {
+		replaced = true;
+        if (retval) CFRelease(retval);
+		retval = (CFStringRef) [nInternationalMobileSubscriberIdentity copy];
     } else if ([propstr isEqualToString:@"MobileEquipmentIdentifier"] && nMobileEquipmentIdentifier != nil) {
 		replaced = true;
         if (retval) CFRelease(retval);
@@ -998,6 +1004,25 @@ static int * replaced_CTServerConnectionCopyMobileEquipmentInfo(CTResult *status
     return retval;
 }
 
+/*
+typedef void* LockdownConnectionRef;
+
+extern int lockdown_send_message(LockdownConnectionRef conn, CFPropertyListRef message, int flags);
+static int (*orig_lockdown_send_message)(LockdownConnectionRef conn, CFPropertyListRef message, int flags);
+static int replaced_lockdown_send_message(LockdownConnectionRef conn, CFPropertyListRef message, int flags)
+{
+	SSKLog(@"lockdown_send_message()\n");
+	return orig_lockdown_send_message(conn, message, flags);
+}
+
+extern int lockdown_receive_message(LockdownConnectionRef conn, CFPropertyListRef* message);
+static int (*orig_lockdown_receive_message)(LockdownConnectionRef conn, CFPropertyListRef* message);
+static int replaced_lockdown_receive_message(LockdownConnectionRef conn, CFPropertyListRef* message)
+{
+	SSKLog(@"lockdown_receive_message()\n");
+	return orig_lockdown_receive_message(conn, message);
+}
+*/
 /*
 void  _CTServerConnectionIssueActivationTicket(CTResult *status, struct __CTServerConnection * Connection, CFMutableDictionaryRef *equipmentInfo);
 static void (*orig_CTServerConnectionIssueActivationTicket)(CTResult *status, struct __CTServerConnection * Connection, CFMutableDictionaryRef *equipmentInfo);
@@ -1168,7 +1193,7 @@ static NSMutableDictionary *(*oldDataArkstore)(id self, SEL _cmd);
 static NSMutableDictionary *newDataArkstore(id self, SEL _cmd)
 {
 	NSMutableDictionary *retval = oldDataArkstore(self, _cmd);
-	SSKLog(@"%s %@", __FUNCTION__, retval);
+	//SSKLog(@"%s %@", __FUNCTION__, retval);
 	return retval;
 }
 /*
@@ -1178,6 +1203,50 @@ static void newaddAGestaltKey(id self, SEL a2, struct __CFString *a3, CFDictiona
 	SSKLog(@"%s %@", __FUNCTION__, cf);
 }
 */
+
+static NSData * (*olddataWithPropertyList)(id self, SEL _cmd, NSDictionary *plist, NSPropertyListFormat fmt, NSPropertyListWriteOptions opt, NSError *err);
+static NSData *newdataWithPropertyList(id self, SEL _cmd, NSDictionary *plist, NSPropertyListFormat fmt, NSPropertyListWriteOptions opt, NSError *err)
+{
+	if (plist[@"ActivationInfoXML"] == nil && plist[@"ActivationRandomness"]) {
+		NSMutableDictionary *newdict = [plist mutableCopy];
+		if (nInternationalMobileEquipmentIdentity != nil) {
+			newdict[@"InternationalMobileEquipmentIdentity"] = [nInternationalMobileEquipmentIdentity copy];
+		}
+
+		if (nBasebandMasterKeyHash != nil) {
+			newdict[@"BasebandMasterKeyHash"] = [nInternationalMobileEquipmentIdentity copy];
+		}
+		
+		if (nBasebandChipId != nil) {
+			newdict[@"BasebandChipID"] = [nBasebandChipId copy];
+		}
+		
+		if (nBasebandSerialNumber != nil) {
+			newdict[@"BasebandSerialNumber"] = [nBasebandSerialNumber copy];
+		}
+		
+		if (nIntegratedCircuitCardIdentity != nil) {
+			newdict[@"IntegratedCircuitCardIdentifier"] = [nIntegratedCircuitCardIdentity copy];
+		}
+		if (nInternationalMobileSubscriberIdentity != nil) {
+			newdict[@"InternationalMobileSubscriberIdentity"] = [nInternationalMobileSubscriberIdentity copy];
+		}
+		newdict[@"ActivationState"] = [@"Activated" copy];
+		SSKLog(@"%s%@", __FUNCTION__, newdict);
+		plist = newdict;
+	}
+	NSData *retval = olddataWithPropertyList(self, _cmd, plist, fmt, opt, err);
+	return retval;
+}
+
+static NSDictionary * (*oldpropertyListWithData)(id self, SEL _cmd, NSData *data, NSPropertyListWriteOptions opt, NSPropertyListFormat *fmt, NSError *err);
+static NSDictionary * newpropertyListWithData(id self, SEL _cmd, NSData *data, NSPropertyListWriteOptions opt, NSPropertyListFormat *fmt, NSError *err)
+{
+	NSDictionary *retval = oldpropertyListWithData(self, _cmd, data, opt, fmt, err);
+	//SSKLog(@"%s%@", __FUNCTION__, retval);
+	return retval;
+}
+
 #pragma mark CocoaSPDY hook
 
 static void (*oldSetTLSTrustEvaluator)(id self, SEL _cmd, id evaluator);
@@ -1259,6 +1328,8 @@ __attribute__((constructor)) static void init(int argc, const char **argv)
 			
 			//MSHookFunction((void*)MGGetBoolAnswer, (void*)replaced_MGGetBoolAnswer, (void**)&orig_MGGetBoolAnswer);
             MSHookFunction((void*)MGCopyAnswer, (void*)new_MGCopyAnswer, (void**)&orig_MGCopyAnswer);
+            //MSHookFunction((void*)lockdown_send_message, (void*)replaced_lockdown_send_message, (void**)&orig_lockdown_send_message);
+            //MSHookFunction((void*)lockdown_receive_message, (void*)replaced_lockdown_receive_message, (void**)&orig_lockdown_receive_message);
             //MSHookFunction((void*)IORegistryEntryCreateCFProperty, (void*)replaced_IORegistryEntryCreateCFProperty, (void**)&orig_IORegistryEntryCreateCFProperty);
             
             MSHookFunction((void*)_CTServerConnectionCopyMobileEquipmentInfo, (void*)replaced_CTServerConnectionCopyMobileEquipmentInfo, (void**)&orig_CTServerConnectionCopyMobileEquipmentInfo);
@@ -1325,10 +1396,16 @@ __attribute__((constructor)) static void init(int argc, const char **argv)
             oBasebandFirmwareVersion = (__bridge NSString *)orig_MGCopyAnswer(kMGBasebandFirmwareVersion);
 			oMobileEquipmentIdentifier = (__bridge NSNumber *)orig_MGCopyAnswer(CFSTR("MobileEquipmentIdentifier"));
 			*/
+
 		if (appID && ([appID isEqualToString:@"com.apple.mobileactivationd"])) {
 			//MSHookMessageEx(NSClassFromString(@"GestaltHlpr"), NSSelectorFromString(@"copyAnswer:"), (IMP) &newcopyAnswerClasses, (IMP *)&oldcopyAnswerClasses);
-			//MSHookMessageEx(NSClassFromString(@"GestaltHlpr"), NSSelectorFromString(@"addAGestaltKey:toDictionary:required:errors:"), (IMP) &newaddAGestaltKey, (IMP *)&oldaddAGestaltKey);			
+			//MSHookMessageEx(NSClassFromString(@"GestaltHlpr"), NSSelectorFromString(@"addAGestaltKey:toDictionary:required:errors:"), (IMP) &newaddAGestaltKey, (IMP *)&oldaddAGestaltKey);
 			MSHookMessageEx(NSClassFromString(@"DataArk"), NSSelectorFromString(@"store"), (IMP) &newDataArkstore, (IMP *)&oldDataArkstore);
+			Class tmp = NSClassFromString(@"NSPropertyListSerialization");
+			if (tmp) {
+				MSHookMessageEx(object_getClass(tmp), NSSelectorFromString(@"dataWithPropertyList:format:options:error:"), (IMP) &newdataWithPropertyList, (IMP *)&olddataWithPropertyList);
+				MSHookMessageEx(object_getClass(tmp), NSSelectorFromString(@"propertyListWithData:options:format:error:"), (IMP) &newpropertyListWithData, (IMP *)&oldpropertyListWithData);
+			}
 		}
         //}
         // CocoaSPDY hooks - https://github.com/twitter/CocoaSPDY
