@@ -1,9 +1,0 @@
-Package: com.scottgl.mgtest
-Name: MGTest
-Depends: mobilesubstrate
-Version: 0.10
-Architecture: iphoneos-arm
-Description: MGTest APP
-Maintainer: Scott Glover <scottgl@gmail.com>
-Author: Scott Glover <scottgl@gmail.com>
-Section: Tweaks

@@ -1,9 +1,0 @@
-Package: com.scottgl.httpeek
-Name: HTTPeak
-Depends: mobilesubstrate
-Version: 0.10
-Architecture: iphoneos-arm
-Description: View HTTP/HTTPS traffic on iOS
-Maintainer: Scott Glover <scottgl@gmail.com>
-Author: Scott Glover <scottgl@gmail.com>
-Section: Tweaks
